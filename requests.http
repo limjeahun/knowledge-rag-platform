@@ -1,0 +1,31 @@
+### 1. Health
+GET http://localhost:8080/actuator/health
+
+### 2. Add knowledge (repeat this request with your own documents)
+POST http://localhost:8080/api/documents
+Content-Type: application/json
+
+{
+  "title": "Spring AI study memo",
+  "content": "Spring AI offers portable model APIs, vector store abstractions, RAG support, and MCP integration. This project stores source documents in PostgreSQL and searchable chunks in Milvus.",
+  "metadata": {
+    "category": "spring-ai",
+    "language": "en"
+  }
+}
+
+### 3. Inspect retrieval without calling the chat model
+GET http://localhost:8080/api/search?query=How does RAG work?&topK=5&similarityThreshold=0.3
+
+### 4. RAG answer
+POST http://localhost:8080/api/chat
+Content-Type: application/json
+
+{
+  "question": "Spring AI에서 RAG 질문은 어떤 흐름으로 처리돼?",
+  "topK": 5,
+  "similarityThreshold": 0.3
+}
+
+### 5. Replace the ID with the documentId returned by request 2
+GET http://localhost:8080/api/documents/00000000-0000-0000-0000-000000000000
