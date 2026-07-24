@@ -9,8 +9,10 @@ import dev.study.airag.application.dto.query.SearchKnowledgeQuery
 import dev.study.airag.application.dto.result.KnowledgeSearchHit
 import dev.study.airag.application.exception.DocumentIndexingAlreadyInProgressException
 import dev.study.airag.application.exception.DocumentIndexingFailedException
+import dev.study.airag.application.exception.KnowledgeAnswerGenerationException
+import dev.study.airag.application.exception.KnowledgeAnswerGenerationFailure
 import dev.study.airag.application.exception.KnowledgeDocumentNotFoundException
-import dev.study.airag.application.model.outbox.OutboxEnvelope
+import dev.study.airag.application.outbox.OutboxEnvelope
 import dev.study.airag.application.port.out.ChunkKnowledgeDocumentPort
 import dev.study.airag.application.port.out.CorrelationIdGenerator
 import dev.study.airag.application.port.out.DocumentIndexingCompletionPort
@@ -220,6 +222,118 @@ class KnowledgeApplicationServiceTests {
         assertEquals("grounded answer", result.answer)
         assertEquals(expected, result.sources)
         assertTrue(result.sources === generatedSources)
+    }
+
+    @Test
+    fun `answer retries once with the most relevant half when generation is truncated`() {
+        val index = InMemoryKnowledgeIndexPort()
+        val sources =
+            listOf(
+                searchHit().copy(chunkId = "chunk-1", score = 0.9),
+                searchHit().copy(chunkId = "chunk-2", score = 0.8),
+                searchHit().copy(chunkId = "chunk-3", score = 0.7),
+            )
+        index.searchResults = sources
+        val generatedSources = mutableListOf<List<KnowledgeSearchHit>>()
+        val service =
+            QueryKnowledgeService(
+                InMemoryDocumentPort(),
+                index,
+                GenerateKnowledgeAnswerPort { _, attemptSources ->
+                    generatedSources += attemptSources
+                    if (generatedSources.size == 1) {
+                        throw KnowledgeAnswerGenerationException(KnowledgeAnswerGenerationFailure.OUTPUT_TRUNCATED)
+                    }
+                    "concise grounded answer"
+                },
+            )
+
+        val result = service.answer(AnswerKnowledgeQuestionQuery("What is RAG?", 3, 0.7))
+
+        assertEquals(2, generatedSources.size)
+        assertEquals(sources, generatedSources[0])
+        assertEquals(sources.take(2), generatedSources[1])
+        assertEquals("concise grounded answer", result.answer)
+        assertEquals(sources.take(2), result.sources)
+    }
+
+    @Test
+    fun `answer halves a single source content before retrying`() {
+        val index = InMemoryKnowledgeIndexPort()
+        val source = searchHit().copy(content = "1234567890")
+        index.searchResults = listOf(source)
+        val generatedSources = mutableListOf<List<KnowledgeSearchHit>>()
+        val service =
+            QueryKnowledgeService(
+                InMemoryDocumentPort(),
+                index,
+                GenerateKnowledgeAnswerPort { _, attemptSources ->
+                    generatedSources += attemptSources
+                    if (generatedSources.size == 1) {
+                        throw KnowledgeAnswerGenerationException(KnowledgeAnswerGenerationFailure.OUTPUT_TRUNCATED)
+                    }
+                    "answer"
+                },
+            )
+
+        val result = service.answer(AnswerKnowledgeQuestionQuery("question"))
+
+        assertEquals(2, generatedSources.size)
+        assertEquals("12345", generatedSources[1].single().content)
+        assertEquals(generatedSources[1], result.sources)
+    }
+
+    @Test
+    fun `answer does not retry provider failures`() {
+        val index = InMemoryKnowledgeIndexPort()
+        index.searchResults = listOf(searchHit())
+        var attempts = 0
+        val expected =
+            KnowledgeAnswerGenerationException(
+                KnowledgeAnswerGenerationFailure.PROVIDER_CALL_FAILED,
+                IllegalStateException("Ollama unavailable"),
+            )
+        val service =
+            QueryKnowledgeService(
+                InMemoryDocumentPort(),
+                index,
+                GenerateKnowledgeAnswerPort { _, _ ->
+                    attempts += 1
+                    throw expected
+                },
+            )
+
+        val actual =
+            assertFailsWith<KnowledgeAnswerGenerationException> {
+                service.answer(AnswerKnowledgeQuestionQuery("question"))
+            }
+
+        assertTrue(actual === expected)
+        assertEquals(1, attempts)
+    }
+
+    @Test
+    fun `answer propagates a second truncation after exactly one retry`() {
+        val index = InMemoryKnowledgeIndexPort()
+        index.searchResults = listOf(searchHit(), searchHit().copy(chunkId = "chunk-2"))
+        var attempts = 0
+        val service =
+            QueryKnowledgeService(
+                InMemoryDocumentPort(),
+                index,
+                GenerateKnowledgeAnswerPort { _, _ ->
+                    attempts += 1
+                    throw KnowledgeAnswerGenerationException(KnowledgeAnswerGenerationFailure.OUTPUT_TRUNCATED)
+                },
+            )
+
+        val exception =
+            assertFailsWith<KnowledgeAnswerGenerationException> {
+                service.answer(AnswerKnowledgeQuestionQuery("question"))
+            }
+
+        assertEquals(KnowledgeAnswerGenerationFailure.OUTPUT_TRUNCATED, exception.failure)
+        assertEquals(2, attempts)
     }
 
     @Test

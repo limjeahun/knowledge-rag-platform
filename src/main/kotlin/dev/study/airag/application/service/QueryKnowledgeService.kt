@@ -5,6 +5,8 @@ import dev.study.airag.application.dto.query.SearchKnowledgeQuery
 import dev.study.airag.application.dto.result.KnowledgeAnswerResult
 import dev.study.airag.application.dto.result.KnowledgeDocumentResult
 import dev.study.airag.application.dto.result.KnowledgeSearchHit
+import dev.study.airag.application.exception.KnowledgeAnswerGenerationException
+import dev.study.airag.application.exception.KnowledgeAnswerGenerationFailure
 import dev.study.airag.application.exception.KnowledgeDocumentNotFoundException
 import dev.study.airag.application.port.`in`.AnswerKnowledgeQuestionUseCase
 import dev.study.airag.application.port.`in`.GetKnowledgeDocumentUseCase
@@ -13,6 +15,7 @@ import dev.study.airag.application.port.out.GenerateKnowledgeAnswerPort
 import dev.study.airag.application.port.out.KnowledgeDocumentPort
 import dev.study.airag.application.port.out.KnowledgeIndexPort
 import dev.study.airag.domain.vo.DocumentId
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -25,6 +28,8 @@ class QueryKnowledgeService(
 ) : GetKnowledgeDocumentUseCase,
     SearchKnowledgeUseCase,
     AnswerKnowledgeQuestionUseCase {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     /** 원본 본문을 제외한 문서 정보와 현재 색인 상태를 조회한다. */
     @Transactional(readOnly = true)
     override fun get(documentId: String): KnowledgeDocumentResult {
@@ -48,17 +53,51 @@ class QueryKnowledgeService(
         return knowledgeIndexPort.search(query)
     }
 
-    /**
-     * 검색 결과를 그대로 답변 생성에 사용하여 반환 출처와 실제 근거를 일치시킨다.
-     */
+    /** 검색 결과로 답변하고 길이 초과 시 근거를 축소해 한 번만 재시도한다. */
     override fun answer(query: AnswerKnowledgeQuestionQuery): KnowledgeAnswerResult {
         validate(query.question, query.topK, query.similarityThreshold)
         val sources =
             knowledgeIndexPort.search(
                 SearchKnowledgeQuery(query.question, query.topK, query.similarityThreshold),
             )
-        val answer = generateAnswerPort.generate(query.question, sources)
-        return KnowledgeAnswerResult(query.question, answer, sources)
+        return try {
+            KnowledgeAnswerResult(
+                query.question,
+                generateAnswerPort.generate(query.question, sources),
+                sources,
+            )
+        } catch (exception: KnowledgeAnswerGenerationException) {
+            if (exception.failure != KnowledgeAnswerGenerationFailure.OUTPUT_TRUNCATED) {
+                throw exception
+            }
+            retryWithReducedSources(query.question, sources)
+        }
+    }
+
+    /**
+     * 근거를 축소해 AI 답변 길이 초과로 인해 발생한 예외를 재시도한다.
+     */
+    private fun retryWithReducedSources(
+        question: String,
+        sources: List<KnowledgeSearchHit>,
+    ): KnowledgeAnswerResult {
+        val reducedSources = reduceSources(sources)
+        logger.warn(
+            "AI 답변 길이 초과로 근거를 축소해 한 번 재시도합니다. sourceCount={}, retrySourceCount={}",
+            sources.size,
+            reducedSources.size,
+        )
+        val answer = generateAnswerPort.generate(question, reducedSources)
+        return KnowledgeAnswerResult(question, answer, reducedSources)
+    }
+
+    private fun reduceSources(sources: List<KnowledgeSearchHit>): List<KnowledgeSearchHit> {
+        if (sources.size > 1) {
+            return sources.take((sources.size + 1) / 2)
+        }
+        return sources.map { source ->
+            source.copy(content = source.content.take((source.content.length / 2).coerceAtLeast(1)))
+        }
     }
 
     private fun validate(

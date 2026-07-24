@@ -1,6 +1,6 @@
 package dev.study.airag.adapter.out.persistence.postgres.outbox
 
-import dev.study.airag.application.model.outbox.OutboxEnvelope
+import dev.study.airag.application.outbox.OutboxEnvelope
 import dev.study.airag.domain.event.DocumentIndexingRequested
 import dev.study.airag.domain.event.KnowledgeDocumentDeleted
 import dev.study.airag.domain.vo.DocumentId

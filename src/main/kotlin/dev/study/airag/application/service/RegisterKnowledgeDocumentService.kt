@@ -4,7 +4,7 @@ import dev.study.airag.application.dto.command.RegisterKnowledgeDocumentCommand
 import dev.study.airag.application.dto.command.RetryKnowledgeDocumentIndexingCommand
 import dev.study.airag.application.dto.result.RegisteredKnowledgeDocumentResult
 import dev.study.airag.application.exception.KnowledgeDocumentNotFoundException
-import dev.study.airag.application.model.outbox.OutboxEnvelope
+import dev.study.airag.application.outbox.OutboxEnvelope
 import dev.study.airag.application.port.`in`.RegisterKnowledgeDocumentUseCase
 import dev.study.airag.application.port.`in`.RetryKnowledgeDocumentIndexingUseCase
 import dev.study.airag.application.port.out.CorrelationIdGenerator

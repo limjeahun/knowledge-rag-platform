@@ -2,7 +2,7 @@ package dev.study.airag.application.service
 
 import dev.study.airag.application.dto.command.DeleteKnowledgeDocumentCommand
 import dev.study.airag.application.exception.KnowledgeDocumentNotFoundException
-import dev.study.airag.application.model.outbox.OutboxEnvelope
+import dev.study.airag.application.outbox.OutboxEnvelope
 import dev.study.airag.application.port.`in`.DeleteKnowledgeDocumentUseCase
 import dev.study.airag.application.port.out.CorrelationIdGenerator
 import dev.study.airag.application.port.out.EventIdGenerator

@@ -2,6 +2,9 @@ package dev.study.airag.adapter.`in`.web
 
 import dev.study.airag.application.dto.command.DeleteKnowledgeDocumentCommand
 import dev.study.airag.application.dto.command.RetryKnowledgeDocumentIndexingCommand
+import dev.study.airag.application.dto.query.AnswerKnowledgeQuestionQuery
+import dev.study.airag.application.exception.KnowledgeAnswerGenerationException
+import dev.study.airag.application.exception.KnowledgeAnswerGenerationFailure
 import dev.study.airag.application.exception.KnowledgeDocumentNotFoundException
 import dev.study.airag.application.port.`in`.AnswerKnowledgeQuestionUseCase
 import dev.study.airag.application.port.`in`.DeleteKnowledgeDocumentUseCase
@@ -117,6 +120,28 @@ class ApiExceptionHandlerTests(
                 status { isBadRequest() }
                 jsonPath("$.error") {
                     value("question: 질문은 비어 있을 수 없습니다.; topK: topK는 1 이상이어야 합니다.")
+                }
+            }
+    }
+
+    @Test
+    fun `truncated AI answer returns safe 502 error response`() {
+        doThrow(KnowledgeAnswerGenerationException(KnowledgeAnswerGenerationFailure.OUTPUT_TRUNCATED))
+            .`when`(answerUseCase)
+            .answer(
+                any(AnswerKnowledgeQuestionQuery::class.java)
+                    ?: AnswerKnowledgeQuestionQuery(""),
+            )
+
+        mockMvc
+            .post("/api/chat") {
+                contentType = MediaType.APPLICATION_JSON
+                content = """{"question":"React 입문 순서를 알려줘","topK":5,"similarityThreshold":0.5}"""
+            }.andExpect {
+                status { isBadGateway() }
+                jsonPath("$.errorCode") { value("AI_ANSWER_TRUNCATED") }
+                jsonPath("$.error") {
+                    value("AI 모델이 응답 길이 한도 내에서 답변 생성을 완료하지 못했습니다.")
                 }
             }
     }

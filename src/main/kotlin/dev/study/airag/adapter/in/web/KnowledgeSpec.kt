@@ -38,6 +38,11 @@ interface KnowledgeSpec {
                     content = [Content(schema = Schema(implementation = ApiErrorResponse::class))],
                 ),
                 ApiResponse(
+                    responseCode = "502",
+                    description = "AI 답변 공급자가 답변 생성을 완료하지 못함",
+                    content = [Content(schema = Schema(implementation = ApiErrorResponse::class))],
+                ),
+                ApiResponse(
                     responseCode = "500",
                     description = "서버 내부 오류",
                     content = [Content(schema = Schema(implementation = ApiErrorResponse::class))],

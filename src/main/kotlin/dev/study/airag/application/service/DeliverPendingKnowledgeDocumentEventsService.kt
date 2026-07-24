@@ -2,12 +2,12 @@ package dev.study.airag.application.service
 
 import dev.study.airag.application.dto.result.KnowledgeDocumentEventDeliveryFailure
 import dev.study.airag.application.dto.result.KnowledgeDocumentEventDeliveryResult
-import dev.study.airag.application.model.outbox.OutboxEnvelope
-import dev.study.airag.application.model.publication.DocumentIndexingPublication
+import dev.study.airag.application.outbox.OutboxEnvelope
 import dev.study.airag.application.port.`in`.DeliverPendingKnowledgeDocumentEventsUseCase
 import dev.study.airag.application.port.out.KnowledgeIndexPort
 import dev.study.airag.application.port.out.OutboxEventPort
 import dev.study.airag.application.port.out.PublishDocumentIndexingPort
+import dev.study.airag.application.port.out.dto.DocumentIndexingPublication
 import dev.study.airag.domain.event.DocumentIndexingRequested
 import dev.study.airag.domain.event.KnowledgeDocumentDeleted
 import org.springframework.stereotype.Service

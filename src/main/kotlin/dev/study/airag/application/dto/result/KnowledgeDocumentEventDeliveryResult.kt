@@ -7,8 +7,3 @@ data class KnowledgeDocumentEventDeliveryResult(
     val deliveredEventIds: List<UUID>,
     val failures: List<KnowledgeDocumentEventDeliveryFailure>,
 )
-
-data class KnowledgeDocumentEventDeliveryFailure(
-    val eventId: UUID,
-    val reason: String,
-)

@@ -8,5 +8,5 @@ package dev.study.airag.application.dto.query
 data class AnswerKnowledgeQuestionQuery(
     val question: String,
     val topK: Int = 5,
-    val similarityThreshold: Double = 0.5,
+    val similarityThreshold: Double = 0.5, //
 )

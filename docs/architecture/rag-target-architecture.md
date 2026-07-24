@@ -12,7 +12,7 @@
 | Milvus | 재생성 가능한 문서 청크와 768차원 embedding 검색 인덱스 |
 | Kafka | 문서 색인 요청 전달 |
 | Redis | Kafka Consumer의 짧은 owner-token processing lock |
-| Ollama | `nomic-embed-text` embedding과 `qwen3:4b` 답변 생성 |
+| Ollama | `nomic-embed-text` embedding과 `qwen3.6:27b` 답변 생성 |
 
 PostgreSQL이 원문과 업무 상태의 Source of Truth다. Milvus는 유일한 Vector DB지만 원본 저장소는 아니며 PostgreSQL 문서로부터 재구축할 수 있다.
 

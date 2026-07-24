@@ -12,7 +12,7 @@ JDK 21 LTS, Kotlin, Spring AI 2.0.0으로 만드는 실행형 로컬 지식 검�
 | Vector DB | Milvus 2.6 |
 | Async pipeline | Kafka 4.1 + Transactional Outbox |
 | Processing lock | Redis 8.2 |
-| Local AI | Ollama `qwen3:4b`, `nomic-embed-text` |
+| Local AI | Ollama `qwen3.6:27b`, `nomic-embed-text` |
 | AI protocol | MCP Streamable HTTP `/mcp` |
 
 상세 설계는 `docs/architecture/rag-target-architecture.md`에서 확인할 수 있습니다.
@@ -37,7 +37,7 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 
 ```powershell
 ollama list
-ollama pull qwen3:4b
+ollama pull qwen3.6:27b
 ollama pull nomic-embed-text
 
 docker compose up -d --wait

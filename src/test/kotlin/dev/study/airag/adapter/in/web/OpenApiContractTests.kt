@@ -80,6 +80,10 @@ class OpenApiContractTests(
                 jsonPath("$.paths['/api/search'].get.parameters[0].description") { value("검색할 자연어 질의") }
                 jsonPath("$.paths['/api/chat'].post.responses['200']") { exists() }
                 jsonPath("$.paths['/api/chat'].post.responses['415']") { exists() }
+                jsonPath("$.paths['/api/chat'].post.responses['502']") { exists() }
+                jsonPath(
+                    "$.paths['/api/chat'].post.responses['502'].content['*/*'].schema['\$ref']",
+                ) { value("#/components/schemas/ApiErrorResponse") }
                 jsonPath("$.paths['/api/chat'].post.responses['500']") { exists() }
                 jsonPath("$.paths['/api/chat'].post.summary") { value("지식 기반 질문") }
             }

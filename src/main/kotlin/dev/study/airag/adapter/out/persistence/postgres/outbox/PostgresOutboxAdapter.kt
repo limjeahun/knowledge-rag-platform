@@ -1,6 +1,6 @@
 package dev.study.airag.adapter.out.persistence.postgres.outbox
 
-import dev.study.airag.application.model.outbox.OutboxEnvelope
+import dev.study.airag.application.outbox.OutboxEnvelope
 import dev.study.airag.application.port.out.OutboxEventPort
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Component

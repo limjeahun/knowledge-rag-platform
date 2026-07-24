@@ -1,4 +1,4 @@
-package dev.study.airag.application.model.publication
+package dev.study.airag.application.port.out.dto
 
 import dev.study.airag.domain.vo.DocumentId
 import java.time.Instant

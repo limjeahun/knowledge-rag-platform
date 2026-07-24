@@ -1,6 +1,6 @@
 package dev.study.airag.application.port.out
 
-import dev.study.airag.application.model.outbox.OutboxEnvelope
+import dev.study.airag.application.outbox.OutboxEnvelope
 import java.time.Instant
 import java.util.UUID
 

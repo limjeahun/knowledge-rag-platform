@@ -22,7 +22,9 @@ import java.util.UUID
 class SpringAiMilvusKnowledgeIndexAdapter(
     private val vectorStore: VectorStore,
 ) : KnowledgeIndexPort {
-    /** 이전 버전의 근거가 검색되지 않도록 모든 기존 근거를 제거한 후 새 버전을 저장한다. */
+    /** 
+     * 이전 버전의 근거가 검색되지 않도록 모든 기존 근거를 제거한 후 새 버전을 저장한다. 
+     */
     override fun replace(
         documentId: DocumentId,
         documentVersion: Long,
@@ -32,19 +34,23 @@ class SpringAiMilvusKnowledgeIndexAdapter(
         vectorStore.add(chunks.map { it.toVectorDocument() })
     }
 
-    /** 질의문과 검색 범위를 적용해 조건을 충족한 문서 근거를 반환한다. */
+    /** 
+     * 질의문과 검색 범위를 적용해 조건을 충족한 문서 근거를 반환한다. 
+     */
     override fun search(query: SearchKnowledgeQuery): List<KnowledgeSearchHit> {
         val request =
             SearchRequest
                 .builder()
-                .query(query.query)
+                .query(query.query) // 질의문을 검색 요청에 설정
                 .topK(query.topK)
-                .similarityThreshold(query.similarityThreshold)
+                .similarityThreshold(query.similarityThreshold) // 유사도 임계값 설정
                 .build()
         return vectorStore.similaritySearch(request).map { it.toSearchHit() }
     }
 
-    /** 문서 식별자가 같은 모든 버전의 검색 근거를 제거한다. */
+    /** 
+     * 문서 식별자가 같은 모든 버전의 검색 근거를 제거한다. 
+     */
     override fun remove(documentId: DocumentId) {
         val expression = FilterExpressionBuilder().eq("document_id", documentId.toString()).build()
         vectorStore.delete(expression)

@@ -1,4 +1,4 @@
-package dev.study.airag.application.model.outbox
+package dev.study.airag.application.outbox
 
 import dev.study.airag.domain.event.KnowledgeDocumentEvent
 import java.util.UUID

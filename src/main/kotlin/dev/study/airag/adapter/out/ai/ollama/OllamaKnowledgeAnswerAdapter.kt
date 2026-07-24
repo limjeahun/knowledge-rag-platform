@@ -1,9 +1,13 @@
 package dev.study.airag.adapter.out.ai.ollama
 
 import dev.study.airag.application.dto.result.KnowledgeSearchHit
+import dev.study.airag.application.exception.KnowledgeAnswerGenerationException
+import dev.study.airag.application.exception.KnowledgeAnswerGenerationFailure
 import dev.study.airag.application.port.out.GenerateKnowledgeAnswerPort
+import org.slf4j.LoggerFactory
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.model.ChatModel
+import org.springframework.ai.chat.model.ChatResponse
 import org.springframework.stereotype.Component
 
 /** 검색된 문서 근거 밖의 내용을 사실처럼 답하지 않도록 제한해 답변을 생성한다. */
@@ -11,6 +15,8 @@ import org.springframework.stereotype.Component
 class OllamaKnowledgeAnswerAdapter(
     chatModel: ChatModel,
 ) : GenerateKnowledgeAnswerPort {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     private val chatClient =
         ChatClient
             .builder(chatModel)
@@ -35,11 +41,96 @@ class OllamaKnowledgeAnswerAdapter(
             sources.joinToString("\n\n") {
                 "[${it.documentId}/${it.chunkId}] ${it.content}"
             }
-        return chatClient
-            .prompt()
-            .user("Context:\n$context\n\nQuestion:\n$question")
-            .call()
-            .content()
-            .orEmpty()
+        return try {
+            val response =
+                chatClient
+                    .prompt()
+                    .user("Context:\n$context\n\nQuestion:\n$question")
+                    .call()
+                    .chatResponse()
+            requireCompletedAnswer(response, sources.size)
+        } catch (exception: KnowledgeAnswerGenerationException) {
+            throw exception
+        } catch (exception: Exception) {
+            logger.error(
+                "AI 답변 공급자 호출에 실패했습니다. sourceCount={}",
+                sources.size,
+                exception,
+            )
+            throw KnowledgeAnswerGenerationException(
+                KnowledgeAnswerGenerationFailure.PROVIDER_CALL_FAILED,
+                exception,
+            )
+        }
+    }
+
+    private fun requireCompletedAnswer(
+        response: ChatResponse?,
+        sourceCount: Int,
+    ): String {
+        val generation = response?.result
+        val finishReason = generation?.metadata?.finishReason
+        val answer = generation?.output?.text
+        val usage = response?.metadata?.usage
+        val thinking: String? = generation?.metadata?.get(THINKING_METADATA_KEY)
+
+        if (finishReason.equals(LENGTH_FINISH_REASON, ignoreCase = true)) {
+            logInvalidResponse(
+                failure = KnowledgeAnswerGenerationFailure.OUTPUT_TRUNCATED,
+                response = response,
+                finishReason = finishReason,
+                thinkingLength = thinking?.length ?: 0,
+                sourceCount = sourceCount,
+            )
+            throw KnowledgeAnswerGenerationException(KnowledgeAnswerGenerationFailure.OUTPUT_TRUNCATED)
+        }
+        if (answer.isNullOrBlank()) {
+            logInvalidResponse(
+                failure = KnowledgeAnswerGenerationFailure.EMPTY_RESPONSE,
+                response = response,
+                finishReason = finishReason,
+                thinkingLength = thinking?.length ?: 0,
+                sourceCount = sourceCount,
+            )
+            throw KnowledgeAnswerGenerationException(KnowledgeAnswerGenerationFailure.EMPTY_RESPONSE)
+        }
+        logger.debug(
+            "AI 답변 생성에 성공했습니다. model={}, finishReason={}, promptTokens={}, completionTokens={}, " +
+                "totalTokens={}, sourceCount={}",
+            response.metadata.model,
+            finishReason,
+            usage?.promptTokens,
+            usage?.completionTokens,
+            usage?.totalTokens,
+            sourceCount,
+        )
+        return answer
+    }
+
+    private fun logInvalidResponse(
+        failure: KnowledgeAnswerGenerationFailure,
+        response: ChatResponse?,
+        finishReason: String?,
+        thinkingLength: Int,
+        sourceCount: Int,
+    ) {
+        val usage = response?.metadata?.usage
+        logger.warn(
+            "AI 답변 공급자가 유효하지 않은 응답을 반환했습니다. failure={}, model={}, finishReason={}, " +
+                "promptTokens={}, completionTokens={}, totalTokens={}, thinkingLength={}, sourceCount={}",
+            failure,
+            response?.metadata?.model,
+            finishReason,
+            usage?.promptTokens,
+            usage?.completionTokens,
+            usage?.totalTokens,
+            thinkingLength,
+            sourceCount,
+        )
+    }
+
+    private companion object {
+        const val THINKING_METADATA_KEY = "thinking"
+        const val LENGTH_FINISH_REASON = "length"
     }
 }

@@ -1,6 +1,8 @@
 package dev.study.airag.adapter.`in`.web
 
 import dev.study.airag.adapter.`in`.web.response.ApiErrorResponse
+import dev.study.airag.application.exception.KnowledgeAnswerGenerationException
+import dev.study.airag.application.exception.KnowledgeAnswerGenerationFailure
 import dev.study.airag.application.exception.KnowledgeDocumentNotFoundException
 import dev.study.airag.domain.exception.InvalidDocumentStateTransitionException
 import jakarta.validation.ConstraintViolationException
@@ -34,6 +36,20 @@ class ApiExceptionHandler {
     @ResponseStatus(HttpStatus.CONFLICT)
     fun invalidDocumentState(exception: InvalidDocumentStateTransitionException) =
         ApiErrorResponse(exception.message ?: "문서 상태가 요청과 충돌합니다.")
+
+    /** AI 답변 공급자의 실패나 유효하지 않은 응답을 `502 Bad Gateway`로 변환한다. */
+    @ExceptionHandler(KnowledgeAnswerGenerationException::class)
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    fun knowledgeAnswerGenerationFailure(exception: KnowledgeAnswerGenerationException): ApiErrorResponse =
+        ApiErrorResponse(
+            error = exception.message ?: "AI 답변 생성에 실패했습니다.",
+            errorCode =
+                when (exception.failure) {
+                    KnowledgeAnswerGenerationFailure.OUTPUT_TRUNCATED -> "AI_ANSWER_TRUNCATED"
+                    KnowledgeAnswerGenerationFailure.EMPTY_RESPONSE -> "AI_ANSWER_EMPTY"
+                    KnowledgeAnswerGenerationFailure.PROVIDER_CALL_FAILED -> "AI_PROVIDER_FAILURE"
+                },
+        )
 
     /** Application/Domain에서 거부한 잘못된 값을 `400 Bad Request`로 변환한다. */
     @ExceptionHandler(IllegalArgumentException::class)
