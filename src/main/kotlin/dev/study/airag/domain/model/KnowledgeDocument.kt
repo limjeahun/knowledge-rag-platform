@@ -126,7 +126,8 @@ class KnowledgeDocument private constructor(
     }
 
     /** 지금까지 기록한 Domain Event의 스냅샷을 반환하고 Aggregate 내부 대기 목록을 비운다. */
-    fun pullDomainEvents(): List<KnowledgeDocumentEvent> = recordedEvents.toList().also { recordedEvents.clear() }
+    fun pullDomainEvents(): List<KnowledgeDocumentEvent> = 
+        recordedEvents.toList().also { recordedEvents.clear() }
 
     private fun record(event: KnowledgeDocumentEvent) {
         recordedEvents += event

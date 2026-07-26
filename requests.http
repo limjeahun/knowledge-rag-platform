@@ -29,3 +29,42 @@ Content-Type: application/json
 
 ### 5. Replace the ID with the documentId returned by request 2
 GET http://localhost:8080/api/documents/00000000-0000-0000-0000-000000000000
+
+### 6. OCR evaluation with the primary model
+# Replace the path and ground truth with your own sample.
+POST http://localhost:8080/api/ocr/evaluations
+Content-Type: multipart/form-data; boundary=OcrEvaluationBoundary
+
+--OcrEvaluationBoundary
+Content-Disposition: form-data; name="image"; filename="ocr-sample.png"
+Content-Type: image/png
+
+< ./ocr-sample.png
+--OcrEvaluationBoundary
+Content-Disposition: form-data; name="groundTruth"
+
+이미지에 실제로 표시된 정답 텍스트
+--OcrEvaluationBoundary
+Content-Disposition: form-data; name="model"
+
+qwen3.6:27b
+--OcrEvaluationBoundary--
+
+### 7. Compare the same sample with the secondary model
+POST http://localhost:8080/api/ocr/evaluations
+Content-Type: multipart/form-data; boundary=OcrEvaluationBoundary
+
+--OcrEvaluationBoundary
+Content-Disposition: form-data; name="image"; filename="ocr-sample.png"
+Content-Type: image/png
+
+< ./ocr-sample.png
+--OcrEvaluationBoundary
+Content-Disposition: form-data; name="groundTruth"
+
+이미지에 실제로 표시된 정답 텍스트
+--OcrEvaluationBoundary
+Content-Disposition: form-data; name="model"
+
+gemma4:31b
+--OcrEvaluationBoundary--

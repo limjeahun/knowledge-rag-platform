@@ -3,6 +3,7 @@ package dev.study.airag.adapter.`in`.web
 import dev.study.airag.application.port.`in`.AnswerKnowledgeQuestionUseCase
 import dev.study.airag.application.port.`in`.DeleteKnowledgeDocumentUseCase
 import dev.study.airag.application.port.`in`.GetKnowledgeDocumentUseCase
+import dev.study.airag.application.port.`in`.ListKnowledgeDocumentsUseCase
 import dev.study.airag.application.port.`in`.RegisterKnowledgeDocumentUseCase
 import dev.study.airag.application.port.`in`.RetryKnowledgeDocumentIndexingUseCase
 import dev.study.airag.application.port.`in`.SearchKnowledgeUseCase
@@ -42,6 +43,9 @@ class OpenApiContractTests(
     private lateinit var getUseCase: GetKnowledgeDocumentUseCase
 
     @MockitoBean
+    private lateinit var listUseCase: ListKnowledgeDocumentsUseCase
+
+    @MockitoBean
     private lateinit var retryUseCase: RetryKnowledgeDocumentIndexingUseCase
 
     @MockitoBean
@@ -64,6 +68,11 @@ class OpenApiContractTests(
                 jsonPath("$.paths['/api/documents'].post.responses['202']") { exists() }
                 jsonPath("$.paths['/api/documents'].post.summary") { value("지식 문서 등록") }
                 jsonPath("$.paths['/api/documents'].post.tags[0]") { value("Knowledge") }
+                jsonPath("$.paths['/api/documents'].get.responses['200']") { exists() }
+                jsonPath("$.paths['/api/documents'].get.summary") { value("지식 문서 목록 조회") }
+                jsonPath(
+                    "$.paths['/api/documents'].get.responses['200'].content['*/*'].schema.items['\$ref']",
+                ) { value("#/components/schemas/KnowledgeDocumentResponse") }
                 jsonPath("$.paths['/api/documents/{documentId}'].get.responses['200']") { exists() }
                 jsonPath("$.paths['/api/documents/{documentId}'].get.parameters[0].description") {
                     value("조회할 문서 UUID")

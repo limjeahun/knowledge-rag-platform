@@ -549,8 +549,8 @@ class KnowledgeApplicationServiceTests {
     private class InMemoryOutboxPort : OutboxEventPort {
         val envelopes = mutableListOf<OutboxEnvelope>()
 
-        override fun append(envelope: OutboxEnvelope) {
-            envelopes += envelope
+        override fun appendAll(envelopes: List<OutboxEnvelope>) {
+            this.envelopes.addAll(envelopes)
         }
 
         override fun findPending(limit: Int) = envelopes.take(limit)

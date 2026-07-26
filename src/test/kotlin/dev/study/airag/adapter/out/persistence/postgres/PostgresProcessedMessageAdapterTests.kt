@@ -149,8 +149,7 @@ class PostgresProcessedMessageAdapterTests(
     fun `outbox preserves order and records publish failure and completion`() {
         val first = indexingEvent(Instant.parse("2026-07-20T00:00:00Z"))
         val second = removalEvent(first.event.occurredAt.plusSeconds(1))
-        outboxAdapter.append(second)
-        outboxAdapter.append(first)
+        outboxAdapter.appendAll(listOf(second, first))
 
         assertEquals(first.eventId, outboxAdapter.findPending(1).single().eventId)
         assertEquals(listOf(first.eventId, second.eventId), outboxAdapter.findPending(10).map { it.eventId })

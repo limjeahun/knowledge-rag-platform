@@ -7,16 +7,11 @@ import java.util.UUID
 /** 문서 변경과 함께 색인 요청을 보존하고 메시지 발행 결과를 추적한다. */
 interface OutboxEventPort {
     /**
-     * 아직 발행되지 않은 색인 요청을 저장한다.
+     * 같은 Aggregate 변경에서 발생한 미발행 색인 요청을 하나의 트랜잭션으로 저장한다.
      *
      * 호출자는 문서 변경과 같은 트랜잭션 안에서 저장해야 한다.
      */
-    fun append(envelope: OutboxEnvelope)
-
-    /** 같은 Aggregate 변경에서 발생한 이벤트를 하나의 트랜잭션으로 추가한다. */
-    fun appendAll(envelopes: List<OutboxEnvelope>) {
-        envelopes.forEach(::append)
-    }
+    fun appendAll(envelopes: List<OutboxEnvelope>)
 
     /** 발행되지 않은 이벤트를 발생 시각이 빠른 순서로 최대 [limit]개 반환한다. */
     fun findPending(limit: Int): List<OutboxEnvelope>

@@ -16,12 +16,21 @@ class PostgresKnowledgeDocumentAdapter(
      *
      * 문서 식별자와 최초 등록 시각은 상태가 변경되어도 유지한다.
      */
-    override fun save(document: KnowledgeDocument): KnowledgeDocument {
-        repository.save(mapper.toEntity(document))
-        return document
-    }
-
-    /** 해당 식별자의 문서가 없으면 `null`을 반환한다. */
+    override fun save(document: KnowledgeDocument): KnowledgeDocument =
+        mapper.toDomain(
+            repository.save(mapper.toEntity(document))
+        )     
+    
+    /** 
+     * 해당 식별자의 문서가 없으면 `null`을 반환한다. 
+     */
     override fun findById(id: DocumentId): KnowledgeDocument? =
         repository.findById(id.value).map(mapper::toDomain).orElse(null)
+
+    /**
+     * 모든 문서를 반환한다.
+     */
+    override fun findAll(): List<KnowledgeDocument> = 
+        repository.findAll().map(mapper::toDomain)
+    
 }

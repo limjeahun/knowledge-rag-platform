@@ -95,7 +95,7 @@ class KnowledgeDocumentEventDeliveryServiceTests {
         val delivered = mutableListOf<UUID>()
         val failed = mutableListOf<Pair<UUID, String>>()
 
-        override fun append(envelope: OutboxEnvelope) = Unit
+        override fun appendAll(envelopes: List<OutboxEnvelope>) = Unit
 
         override fun findPending(limit: Int): List<OutboxEnvelope> = pending.take(limit)
 

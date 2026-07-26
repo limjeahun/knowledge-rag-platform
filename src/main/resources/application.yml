@@ -1,0 +1,129 @@
+spring:
+  application:
+    name: knowledge-rag-platform
+
+  servlet:
+    multipart:
+      max-file-size: "${OCR_MAX_IMAGE_SIZE:10MB}"
+      max-request-size: "${OCR_MAX_REQUEST_SIZE:11MB}"
+
+  # Local LLM (override every value with the matching environment variable)
+  ai:
+    ollama:
+      base-url: "${OLLAMA_BASE_URL:http://localhost:11434}"
+      chat:
+        model: "${OLLAMA_CHAT_MODEL:qwen3.6:27b}"
+        temperature: 0.2
+        think: "${OLLAMA_CHAT_THINK:false}"
+        num-ctx: "${OLLAMA_CHAT_NUM_CTX:8192}"
+        num-predict: "${OLLAMA_CHAT_NUM_PREDICT:1024}"
+      embedding:
+        model: "${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}"
+
+    # Milvus is the only vector database. nomic-embed-text produces 768-dimensional vectors.
+    vectorstore:
+      milvus:
+        client:
+          host: "${MILVUS_HOST:localhost}"
+          port: "${MILVUS_PORT:19530}"
+        database-name: "${MILVUS_DATABASE:default}"
+        collection-name: "${MILVUS_COLLECTION:knowledge_chunks}"
+        embedding-dimension: "${EMBEDDING_DIMENSION:768}"
+        index-type: IVF_FLAT
+        metric-type: COSINE
+        initialize-schema: true
+
+    # MCP Streamable HTTP server: POST/GET/DELETE http://localhost:8080/mcp
+    mcp:
+      server:
+        name: local-rag-knowledge
+        version: 1.0.0
+        type: SYNC
+        protocol: STREAMABLE
+        instructions: Search and answer questions using the local knowledge base.
+
+  # PostgreSQL is the source of truth for documents, outbox events, and processed messages.
+  datasource:
+    url: "${DB_URL:jdbc:postgresql://localhost:5432/ai_study}"
+    username: "${DB_USERNAME:ai}"
+    password: "${DB_PASSWORD:ai}"
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  # Kafka carries document-indexing requests published from the transactional outbox.
+  kafka:
+    bootstrap-servers: "${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}"
+    consumer:
+      group-id: "${KAFKA_CONSUMER_GROUP:knowledge-indexer}"
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: dev.study.airag.adapter.in.messaging
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: dev.study.airag.adapter.in.messaging.DocumentIndexingMessage
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    listener:
+      ack-mode: record
+
+  # Redis is only a short-lived processing lock, never the source of truth.
+  data:
+    redis:
+      host: "${REDIS_HOST:localhost}"
+      port: "${REDIS_PORT:6379}"
+      repositories:
+        enabled: false
+
+# REST API documentation
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+app:
+  ocr:
+    models:
+      - "${OCR_PRIMARY_MODEL:qwen3.6:27b}"
+      - "${OCR_FALLBACK_MODEL:gemma4:31b}"
+  knowledge:
+    indexing-topic: "${KNOWLEDGE_INDEXING_TOPIC:knowledge.document-indexing.v1}"
+    consumer-name: "${KNOWLEDGE_CONSUMER_NAME:knowledge-document-indexer-v1}"
+    lock-ttl: "${KNOWLEDGE_LOCK_TTL:2m}"
+    outbox:
+      fixed-delay: "${OUTBOX_FIXED_DELAY:2s}"
+      batch-size: "${OUTBOX_BATCH_SIZE:50}"
+    chunk-size: "${KNOWLEDGE_CHUNK_SIZE:500}"
+    min-chunk-size-chars: "${KNOWLEDGE_MIN_CHUNK_CHARS:100}"
+    max-chunks: "${KNOWLEDGE_MAX_CHUNKS:1000}"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  observations:
+    annotations:
+      enabled: true
+
+server:
+  error:
+    include-message: always
+
+logging:
+  file:
+    name: "${LOG_FILE:build/application.log}"

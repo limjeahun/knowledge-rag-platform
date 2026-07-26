@@ -13,4 +13,10 @@ interface KnowledgeDocumentPort {
      * 등록된 문서가 없으면 `null`을 반환한다. 
      */
     fun findById(id: DocumentId): KnowledgeDocument?
+        
+    /**
+     * 모든 문서를 조회한다.
+     */
+    fun findAll(): List<KnowledgeDocument>
+        
 }

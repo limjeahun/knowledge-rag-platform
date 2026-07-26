@@ -13,9 +13,9 @@ class PostgresOutboxAdapter(
     private val repository: OutboxEventRepository,
     private val mapper: OutboxEventMapper,
 ) : OutboxEventPort {
-    /** 문서 저장과 같은 트랜잭션에서 후속 처리 요청을 미완료 상태로 기록한다. */
-    override fun append(envelope: OutboxEnvelope) {
-        repository.save(mapper.toEntity(envelope))
+    /** 문서 저장과 같은 트랜잭션에서 후속 처리 요청들을 미완료 상태로 기록한다. */
+    override fun appendAll(envelopes: List<OutboxEnvelope>) {
+        repository.saveAll(envelopes.map(mapper::toEntity))
     }
 
     /** 성공 기록이 없는 요청을 오래된 순서로 최대 [limit]개 조회한다. */

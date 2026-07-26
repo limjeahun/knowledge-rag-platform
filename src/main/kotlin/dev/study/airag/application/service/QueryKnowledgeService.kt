@@ -10,6 +10,7 @@ import dev.study.airag.application.exception.KnowledgeAnswerGenerationFailure
 import dev.study.airag.application.exception.KnowledgeDocumentNotFoundException
 import dev.study.airag.application.port.`in`.AnswerKnowledgeQuestionUseCase
 import dev.study.airag.application.port.`in`.GetKnowledgeDocumentUseCase
+import dev.study.airag.application.port.`in`.ListKnowledgeDocumentsUseCase
 import dev.study.airag.application.port.`in`.SearchKnowledgeUseCase
 import dev.study.airag.application.port.out.GenerateKnowledgeAnswerPort
 import dev.study.airag.application.port.out.KnowledgeDocumentPort
@@ -26,6 +27,7 @@ class QueryKnowledgeService(
     private val knowledgeIndexPort: KnowledgeIndexPort,
     private val generateAnswerPort: GenerateKnowledgeAnswerPort,
 ) : GetKnowledgeDocumentUseCase,
+    ListKnowledgeDocumentsUseCase,
     SearchKnowledgeUseCase,
     AnswerKnowledgeQuestionUseCase {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -47,6 +49,21 @@ class QueryKnowledgeService(
         )
     }
 
+    @Transactional(readOnly = true) 
+    override fun list(): List<KnowledgeDocumentResult> = 
+        documentPort.findAll().map { document -> 
+            KnowledgeDocumentResult( 
+                documentId      = document.id.toString(), 
+                title           = document.title,
+                version         = document.version,
+                status          = document.status,
+                failureReason   = document.failureReason,
+                registeredAt    = document.registeredAt,
+                indexedAt       = document.indexedAt,
+            )
+        }
+            
+    
     /** 검색 조건을 검증하고 조건을 충족한 문서 근거를 반환한다. */
     override fun search(query: SearchKnowledgeQuery): List<KnowledgeSearchHit> {
         validate(query.query, query.topK, query.similarityThreshold)

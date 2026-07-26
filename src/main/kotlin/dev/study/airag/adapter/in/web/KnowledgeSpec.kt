@@ -82,6 +82,35 @@ interface KnowledgeSpec {
         documentId: String,
     ): KnowledgeDocumentResponse
 
+    @Operation(
+        summary = "지식 문서 목록 조회",
+        description = "원본 본문을 제외한 등록 문서 목록과 각 문서의 현재 색인 상태를 조회한다.",
+    )
+    @ApiResponses(
+        value =
+            [
+                ApiResponse(
+                    responseCode = "200",
+                    description = "문서 목록 조회 성공",
+                    content =
+                        [
+                            Content(
+                                array =
+                                    ArraySchema(
+                                        schema = Schema(implementation = KnowledgeDocumentResponse::class),
+                                    ),
+                            ),
+                        ],
+                ),
+                ApiResponse(
+                    responseCode = "500",
+                    description = "서버 내부 오류",
+                    content = [Content(schema = Schema(implementation = ApiErrorResponse::class))],
+                ),
+            ],
+    )
+    fun list(): List<KnowledgeDocumentResponse>
+
     @Operation(summary = "문서 색인 재시도", description = "마지막 색인에 실패한 문서를 다시 대기 상태로 전환한다.")
     @ApiResponses(
         value =

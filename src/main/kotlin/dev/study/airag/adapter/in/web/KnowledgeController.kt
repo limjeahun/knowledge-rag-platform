@@ -1,12 +1,12 @@
 package dev.study.airag.adapter.`in`.web
 
+import dev.study.airag.adapter.`in`.web.mapper.toResponse
 import dev.study.airag.adapter.`in`.web.request.AskKnowledgeRequest
 import dev.study.airag.adapter.`in`.web.request.RegisterKnowledgeDocumentRequest
 import dev.study.airag.adapter.`in`.web.response.KnowledgeAnswerResponse
 import dev.study.airag.adapter.`in`.web.response.KnowledgeDocumentResponse
 import dev.study.airag.adapter.`in`.web.response.KnowledgeSearchHitResponse
 import dev.study.airag.adapter.`in`.web.response.RegisteredKnowledgeDocumentResponse
-import dev.study.airag.adapter.`in`.web.response.toResponse
 import dev.study.airag.application.dto.command.DeleteKnowledgeDocumentCommand
 import dev.study.airag.application.dto.command.RetryKnowledgeDocumentIndexingCommand
 import dev.study.airag.application.dto.query.AnswerKnowledgeQuestionQuery
@@ -14,6 +14,7 @@ import dev.study.airag.application.dto.query.SearchKnowledgeQuery
 import dev.study.airag.application.port.`in`.AnswerKnowledgeQuestionUseCase
 import dev.study.airag.application.port.`in`.DeleteKnowledgeDocumentUseCase
 import dev.study.airag.application.port.`in`.GetKnowledgeDocumentUseCase
+import dev.study.airag.application.port.`in`.ListKnowledgeDocumentsUseCase
 import dev.study.airag.application.port.`in`.RegisterKnowledgeDocumentUseCase
 import dev.study.airag.application.port.`in`.RetryKnowledgeDocumentIndexingUseCase
 import dev.study.airag.application.port.`in`.SearchKnowledgeUseCase
@@ -33,12 +34,13 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api")
 class KnowledgeController(
-    private val registerUseCase: RegisterKnowledgeDocumentUseCase,
-    private val getUseCase: GetKnowledgeDocumentUseCase,
-    private val retryUseCase: RetryKnowledgeDocumentIndexingUseCase,
-    private val deleteUseCase: DeleteKnowledgeDocumentUseCase,
-    private val searchUseCase: SearchKnowledgeUseCase,
-    private val answerUseCase: AnswerKnowledgeQuestionUseCase,
+    private val registerUseCase:RegisterKnowledgeDocumentUseCase,
+    private val getUseCase:     GetKnowledgeDocumentUseCase,
+    private val listUseCase:    ListKnowledgeDocumentsUseCase,
+    private val retryUseCase:   RetryKnowledgeDocumentIndexingUseCase,
+    private val deleteUseCase:  DeleteKnowledgeDocumentUseCase,
+    private val searchUseCase:  SearchKnowledgeUseCase,
+    private val answerUseCase:  AnswerKnowledgeQuestionUseCase,
 ) : KnowledgeSpec {
     @PostMapping("/documents")
     @ResponseStatus(HttpStatus.ACCEPTED)
@@ -54,6 +56,9 @@ class KnowledgeController(
     override fun get(
         @PathVariable documentId: String,
     ): KnowledgeDocumentResponse = getUseCase.get(documentId).toResponse()
+
+    @GetMapping("/documents")
+    override fun list(): List<KnowledgeDocumentResponse> = listUseCase.list().map { it.toResponse() }
 
     @PostMapping("/documents/{documentId}/retry")
     @ResponseStatus(HttpStatus.ACCEPTED)
