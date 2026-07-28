@@ -19,10 +19,16 @@ import dev.study.airag.application.port.out.DocumentIndexingCompletionPort
 import dev.study.airag.application.port.out.DocumentIndexingLease
 import dev.study.airag.application.port.out.DocumentIndexingLockPort
 import dev.study.airag.application.port.out.EventIdGenerator
+import dev.study.airag.application.port.out.ExtractKnowledgeGraphPort
 import dev.study.airag.application.port.out.GenerateKnowledgeAnswerPort
 import dev.study.airag.application.port.out.KnowledgeDocumentPort
+import dev.study.airag.application.port.out.KnowledgeGraphIndexPort
 import dev.study.airag.application.port.out.KnowledgeIndexPort
+import dev.study.airag.application.port.out.KnowledgeOntologyPort
 import dev.study.airag.application.port.out.OutboxEventPort
+import dev.study.airag.application.port.out.dto.KnowledgeGraphProjection
+import dev.study.airag.application.port.out.dto.KnowledgeOntology
+import dev.study.airag.application.port.out.dto.OntologyEntityType
 import dev.study.airag.domain.event.KnowledgeDocumentDeleted
 import dev.study.airag.domain.exception.InvalidDocumentStateTransitionException
 import dev.study.airag.domain.model.DocumentIndexingStatus
@@ -416,6 +422,19 @@ class KnowledgeApplicationServiceTests {
     }
 
     @Test
+    fun `enabled graph extraction failure keeps the document failed and retryable`() {
+        val fixture = indexingFixture(graphProjectionService = failingGraphProjectionService())
+
+        val failure = assertFailsWith<DocumentIndexingFailedException> { fixture.service.index(fixture.command()) }
+
+        assertEquals("graph provider unavailable", failure.cause?.message)
+        assertEquals(DocumentIndexingStatus.FAILED, fixture.document.status)
+        assertEquals("graph provider unavailable", fixture.document.failureReason)
+        assertFalse(fixture.processed.wasCompleted(fixture.eventId))
+        assertEquals(1, fixture.lock.releases)
+    }
+
+    @Test
     fun `indexing rejects a concurrent lease without starting the workflow`() {
         val fixture = indexingFixture(lockAllowed = false)
 
@@ -438,6 +457,7 @@ class KnowledgeApplicationServiceTests {
         status: DocumentIndexingStatus = DocumentIndexingStatus.PENDING,
         chunks: List<KnowledgeChunk>? = null,
         lockAllowed: Boolean = true,
+        graphProjectionService: ProjectKnowledgeGraphService = disabledGraphProjectionService(),
     ): IndexingFixture {
         val document = documentInStatus(status)
         val documents = InMemoryDocumentPort().also { it.save(document) }
@@ -454,6 +474,7 @@ class KnowledgeApplicationServiceTests {
                 documents,
                 ChunkKnowledgeDocumentPort { actualChunks },
                 index,
+                graphProjectionService,
                 processed,
                 clock,
             )
@@ -529,6 +550,47 @@ class KnowledgeApplicationServiceTests {
     private fun searchHit() =
         KnowledgeSearchHit("chunk-1", UUID.randomUUID().toString(), 1, 0, "RAG", "content", 0.9, emptyMap())
 
+    private fun disabledGraphProjectionService() =
+        ProjectKnowledgeGraphService(
+            ontologyPort = KnowledgeOntologyPort { error("비활성 그래프는 ontology를 읽지 않아야 합니다.") },
+            extractKnowledgeGraphPort = ExtractKnowledgeGraphPort { error("비활성 그래프는 추출기를 호출하지 않아야 합니다.") },
+            knowledgeGraphIndexPort =
+                object : KnowledgeGraphIndexPort {
+                    override fun replace(projection: KnowledgeGraphProjection) {
+                        error("비활성 그래프는 저장하지 않아야 합니다.")
+                    }
+
+                    override fun remove(documentId: DocumentId) = Unit
+                },
+            validator = KnowledgeGraphExtractionValidator(),
+            policy = KnowledgeGraphProjectionPolicy(false, 1, 0.7, 10, 10),
+            clock = clock,
+        )
+
+    private fun failingGraphProjectionService() =
+        ProjectKnowledgeGraphService(
+            ontologyPort =
+                KnowledgeOntologyPort {
+                    KnowledgeOntology(
+                        "test-v1",
+                        listOf(
+                            OntologyEntityType("CONCEPT", "concept"),
+                        ),
+                        emptyList(),
+                    )
+                },
+            extractKnowledgeGraphPort = ExtractKnowledgeGraphPort { error("graph provider unavailable") },
+            knowledgeGraphIndexPort =
+                object : KnowledgeGraphIndexPort {
+                    override fun replace(projection: KnowledgeGraphProjection) = Unit
+
+                    override fun remove(documentId: DocumentId) = Unit
+                },
+            validator = KnowledgeGraphExtractionValidator(),
+            policy = KnowledgeGraphProjectionPolicy(true, 1, 0.7, 10, 10),
+            clock = clock,
+        )
+
     private data class IndexingFixture(
         val document: KnowledgeDocument,
         val eventId: UUID,
@@ -544,6 +606,8 @@ class KnowledgeApplicationServiceTests {
         override fun save(document: KnowledgeDocument): KnowledgeDocument = document.also { values[it.id] = it }
 
         override fun findById(id: DocumentId): KnowledgeDocument? = values[id]
+
+        override fun findAll(): List<KnowledgeDocument> = values.values.toList()
     }
 
     private class InMemoryOutboxPort : OutboxEventPort {

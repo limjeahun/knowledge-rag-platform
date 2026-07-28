@@ -49,21 +49,20 @@ class QueryKnowledgeService(
         )
     }
 
-    @Transactional(readOnly = true) 
-    override fun list(): List<KnowledgeDocumentResult> = 
-        documentPort.findAll().map { document -> 
-            KnowledgeDocumentResult( 
-                documentId      = document.id.toString(), 
-                title           = document.title,
-                version         = document.version,
-                status          = document.status,
-                failureReason   = document.failureReason,
-                registeredAt    = document.registeredAt,
-                indexedAt       = document.indexedAt,
+    @Transactional(readOnly = true)
+    override fun list(): List<KnowledgeDocumentResult> =
+        documentPort.findAll().map { document ->
+            KnowledgeDocumentResult(
+                documentId = document.id.toString(),
+                title = document.title,
+                version = document.version,
+                status = document.status,
+                failureReason = document.failureReason,
+                registeredAt = document.registeredAt,
+                indexedAt = document.indexedAt,
             )
         }
-            
-    
+
     /** 검색 조건을 검증하고 조건을 충족한 문서 근거를 반환한다. */
     override fun search(query: SearchKnowledgeQuery): List<KnowledgeSearchHit> {
         validate(query.query, query.topK, query.similarityThreshold)

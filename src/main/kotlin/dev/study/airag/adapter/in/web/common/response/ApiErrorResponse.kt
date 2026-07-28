@@ -1,0 +1,15 @@
+package dev.study.airag.adapter.`in`.web.common.response
+
+import io.swagger.v3.oas.annotations.media.Schema
+
+/** 요청을 완료하지 못한 이유를 반환한다. */
+data class ApiErrorResponse(
+    @field:Schema(description = "요청을 완료하지 못한 이유", example = "지식 문서를 찾을 수 없습니다: document-id")
+    val error: String,
+    @field:Schema(
+        description = "클라이언트가 실패 유형을 구분할 때 사용하는 안정적인 오류 코드",
+        example = "AI_ANSWER_TRUNCATED",
+        nullable = true,
+    )
+    val errorCode: String? = null,
+)

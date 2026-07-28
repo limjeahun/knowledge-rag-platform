@@ -26,6 +26,9 @@ class OllamaKnowledgeAnswerAdapter(
                 Answer in the same language as the question.
                 Use only the supplied context for factual claims.
                 If the context is insufficient, clearly say that you do not know.
+                Return only the natural-language answer.
+                Do not include document IDs, chunk IDs, UUIDs, source labels, or citations.
+                The application returns source information separately.
                 """.trimIndent(),
             ).build()
 
@@ -39,7 +42,11 @@ class OllamaKnowledgeAnswerAdapter(
         if (sources.isEmpty()) return "저장된 지식에서 답변의 근거를 찾지 못했습니다."
         val context =
             sources.joinToString("\n\n") {
-                "[${it.documentId}/${it.chunkId}] ${it.content}"
+                """
+                Title: ${it.title}
+                Content:
+                ${it.content}
+                """.trimIndent()
             }
         return try {
             val response =

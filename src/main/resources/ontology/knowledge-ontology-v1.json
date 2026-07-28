@@ -1,0 +1,81 @@
+{
+  "version": "knowledge-ontology-v1",
+  "entityTypes": [
+    {
+      "code": "CONCEPT",
+      "description": "A named idea, principle, pattern, or domain term."
+    },
+    {
+      "code": "TECHNOLOGY",
+      "description": "A framework, library, protocol, language, model, or technical product."
+    },
+    {
+      "code": "COMPONENT",
+      "description": "A software or system component with a distinct responsibility."
+    },
+    {
+      "code": "PROCESS",
+      "description": "A workflow, activity, lifecycle, or ordered business/technical procedure."
+    },
+    {
+      "code": "DATA_STORE",
+      "description": "A database, index, repository, cache, or other persistent/temporary data store."
+    },
+    {
+      "code": "ORGANIZATION",
+      "description": "A company, team, institution, or other named organization."
+    },
+    {
+      "code": "PERSON",
+      "description": "A named person or role explicitly discussed as an actor."
+    },
+    {
+      "code": "DOCUMENT",
+      "description": "A named document, specification, policy, or knowledge artifact."
+    }
+  ],
+  "relationTypes": [
+    {
+      "code": "IS_A",
+      "description": "The source is a more specific kind of the target.",
+      "sourceTypes": ["CONCEPT", "TECHNOLOGY", "COMPONENT", "PROCESS", "DATA_STORE", "ORGANIZATION", "PERSON", "DOCUMENT"],
+      "targetTypes": ["CONCEPT", "TECHNOLOGY", "COMPONENT", "PROCESS", "DATA_STORE", "ORGANIZATION", "PERSON", "DOCUMENT"]
+    },
+    {
+      "code": "PART_OF",
+      "description": "The source is an explicit part or member of the target.",
+      "sourceTypes": ["CONCEPT", "TECHNOLOGY", "COMPONENT", "PROCESS", "DATA_STORE", "ORGANIZATION", "PERSON", "DOCUMENT"],
+      "targetTypes": ["CONCEPT", "TECHNOLOGY", "COMPONENT", "PROCESS", "DATA_STORE", "ORGANIZATION", "DOCUMENT"]
+    },
+    {
+      "code": "USES",
+      "description": "The source explicitly uses the target.",
+      "sourceTypes": ["TECHNOLOGY", "COMPONENT", "PROCESS", "ORGANIZATION", "PERSON"],
+      "targetTypes": ["CONCEPT", "TECHNOLOGY", "COMPONENT", "PROCESS", "DATA_STORE", "DOCUMENT"]
+    },
+    {
+      "code": "DEPENDS_ON",
+      "description": "The source explicitly requires or depends on the target.",
+      "sourceTypes": ["CONCEPT", "TECHNOLOGY", "COMPONENT", "PROCESS", "DATA_STORE", "DOCUMENT"],
+      "targetTypes": ["CONCEPT", "TECHNOLOGY", "COMPONENT", "PROCESS", "DATA_STORE", "DOCUMENT"]
+    },
+    {
+      "code": "PRODUCES",
+      "description": "The source explicitly creates, emits, or results in the target.",
+      "sourceTypes": ["TECHNOLOGY", "COMPONENT", "PROCESS", "ORGANIZATION", "PERSON"],
+      "targetTypes": ["CONCEPT", "COMPONENT", "PROCESS", "DATA_STORE", "DOCUMENT"]
+    },
+    {
+      "code": "STORES_IN",
+      "description": "The source's data or output is explicitly stored in the target data store.",
+      "sourceTypes": ["COMPONENT", "PROCESS", "DOCUMENT"],
+      "targetTypes": ["DATA_STORE"]
+    },
+    {
+      "code": "RELATED_TO",
+      "description": "The document explicitly states a meaningful association not covered by another relation.",
+      "sourceTypes": ["CONCEPT", "TECHNOLOGY", "COMPONENT", "PROCESS", "DATA_STORE", "ORGANIZATION", "PERSON", "DOCUMENT"],
+      "targetTypes": ["CONCEPT", "TECHNOLOGY", "COMPONENT", "PROCESS", "DATA_STORE", "ORGANIZATION", "PERSON", "DOCUMENT"]
+    }
+  ]
+}

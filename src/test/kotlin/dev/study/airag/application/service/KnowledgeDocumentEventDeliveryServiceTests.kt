@@ -3,10 +3,12 @@ package dev.study.airag.application.service
 import dev.study.airag.application.dto.query.SearchKnowledgeQuery
 import dev.study.airag.application.dto.result.KnowledgeSearchHit
 import dev.study.airag.application.outbox.OutboxEnvelope
+import dev.study.airag.application.port.out.KnowledgeGraphIndexPort
 import dev.study.airag.application.port.out.KnowledgeIndexPort
 import dev.study.airag.application.port.out.OutboxEventPort
 import dev.study.airag.application.port.out.PublishDocumentIndexingPort
 import dev.study.airag.application.port.out.dto.DocumentIndexingPublication
+import dev.study.airag.application.port.out.dto.KnowledgeGraphProjection
 import dev.study.airag.domain.event.DocumentIndexingRequested
 import dev.study.airag.domain.event.KnowledgeDocumentDeleted
 import dev.study.airag.domain.model.KnowledgeChunk
@@ -29,14 +31,16 @@ class KnowledgeDocumentEventDeliveryServiceTests {
         val removal = removalEnvelope()
         val outbox = RecordingOutboxPort(listOf(indexing, removal))
         val index = RecordingKnowledgeIndexPort()
+        val graph = RecordingKnowledgeGraphIndexPort()
         val published = mutableListOf<DocumentIndexingPublication>()
-        val service = service(outbox, index, PublishDocumentIndexingPort { published += it })
+        val service = service(outbox, index, graph, PublishDocumentIndexingPort { published += it })
 
         val result = service.deliverPending(10)
 
         assertEquals(indexing.event.documentId, published.single().documentId)
         assertEquals(indexing.eventId, published.single().eventId)
         assertEquals(listOf(removal.event.documentId), index.removed)
+        assertEquals(listOf(removal.event.documentId), graph.removed)
         assertEquals(listOf(indexing.eventId, removal.eventId), result.deliveredEventIds)
         assertEquals(emptyList(), result.failures)
         assertEquals(result.deliveredEventIds, outbox.delivered)
@@ -49,7 +53,13 @@ class KnowledgeDocumentEventDeliveryServiceTests {
         val outbox = RecordingOutboxPort(listOf(failedRemoval, indexing))
         val index = RecordingKnowledgeIndexPort(failedRemoval.event.documentId)
         val published = mutableListOf<DocumentIndexingPublication>()
-        val service = service(outbox, index, PublishDocumentIndexingPort { published += it })
+        val service =
+            service(
+                outbox,
+                index,
+                RecordingKnowledgeGraphIndexPort(),
+                PublishDocumentIndexingPort { published += it },
+            )
 
         val result = service.deliverPending(10)
 
@@ -63,7 +73,11 @@ class KnowledgeDocumentEventDeliveryServiceTests {
     fun `rejects a non-positive batch limit`() {
         val exception =
             assertFailsWith<IllegalArgumentException> {
-                service(RecordingOutboxPort(emptyList()), RecordingKnowledgeIndexPort()).deliverPending(0)
+                service(
+                    RecordingOutboxPort(emptyList()),
+                    RecordingKnowledgeIndexPort(),
+                    RecordingKnowledgeGraphIndexPort(),
+                ).deliverPending(0)
             }
 
         assertEquals("Outbox 전달 건수 제한은 0보다 커야 합니다.", exception.message)
@@ -72,8 +86,9 @@ class KnowledgeDocumentEventDeliveryServiceTests {
     private fun service(
         outbox: OutboxEventPort,
         index: KnowledgeIndexPort,
+        graphIndex: KnowledgeGraphIndexPort,
         publisher: PublishDocumentIndexingPort = PublishDocumentIndexingPort { },
-    ) = DeliverPendingKnowledgeDocumentEventsService(outbox, publisher, index, clock)
+    ) = DeliverPendingKnowledgeDocumentEventsService(outbox, publisher, index, graphIndex, clock)
 
     private fun indexingEnvelope() =
         OutboxEnvelope(
@@ -129,6 +144,16 @@ class KnowledgeDocumentEventDeliveryServiceTests {
 
         override fun remove(documentId: DocumentId) {
             if (documentId == removalFailureId) error("index unavailable")
+            removed += documentId
+        }
+    }
+
+    private class RecordingKnowledgeGraphIndexPort : KnowledgeGraphIndexPort {
+        val removed = mutableListOf<DocumentId>()
+
+        override fun replace(projection: KnowledgeGraphProjection) = Unit
+
+        override fun remove(documentId: DocumentId) {
             removed += documentId
         }
     }

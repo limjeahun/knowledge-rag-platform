@@ -176,8 +176,15 @@ dev.study.airag
 ├── adapter
 │   ├── in
 │   │   ├── web
-│   │   │   ├── request
-│   │   │   └── response
+│   │   │   ├── common
+│   │   │   │   ├── exception
+│   │   │   │   └── response
+│   │   │   └── <feature>
+│   │   │       ├── controller
+│   │   │       ├── request
+│   │   │       ├── response
+│   │   │       ├── mapper
+│   │   │       └── exception
 │   │   ├── mcp
 │   │   └── messaging
 │   └── out
@@ -195,13 +202,18 @@ dev.study.airag
 └── config
 ```
 
-- 현재의 `api`, `service`, `mcp` 패키지는 초기 학습용 구조다. 기능을 확장할 때 위 경계로 단계적으로 이동한다.
+- 최상위 패키지는 Hexagonal 계층 경계를 우선하고, `adapter.in.web` 내부는 `knowledge`, `graph`, `ocr` 같은 기능을 먼저 나누는 Package-by-Feature를 사용한다.
+- 각 Web 기능 패키지 안에서 `controller`, `request`, `response`, `mapper`, 필요한 경우 `exception`으로 역할을 나눈다.
+- Controller와 해당 OpenAPI Spec은 같은 `<feature>.controller` 패키지에 둔다.
+- `adapter.in.web.common`에는 둘 이상의 Web 기능이 실제로 공유하는 오류 응답과 전역 예외 처리만 둔다. 기능 전용 타입이나 편의성 코드의 임시 보관소로 사용하지 않는다.
+- Web 기능 패키지는 다른 Web 기능의 Controller, Request, Response, Mapper를 직접 호출하거나 재사용하지 않고 Application Inbound Port를 통해 협력한다.
 - 승인 없이 전체 구조를 한 번에 재작성하지 않는다. Vertical Slice 단위로 이전하고 매 단계 테스트를 통과시킨다.
 
 ## 9. DTO와 경계 모델
 
-- Web Request는 `adapter.in.web.request`에 둔다.
-- Web Response는 `adapter.in.web.response`에 둔다.
+- Web Request는 `adapter.in.web.<feature>.request`에 둔다.
+- Web Response는 `adapter.in.web.<feature>.response`에 둔다.
+- 둘 이상의 Web 기능이 공유하는 오류 응답처럼 기능 중립적인 HTTP 계약만 `adapter.in.web.common.response`에 둔다.
 - Application Command, Query, Result는 `application.dto` 아래에 둔다.
 - Web Request는 primitive/simple field를 가진 Command 또는 Query로만 변환한다.
 - Web Request가 Domain VO를 직접 만들지 않는다.
@@ -310,7 +322,8 @@ Outbound Port는 다음 외부 능력을 표현한다.
 - MCP Tool은 Web Controller를 호출하지 않고 동일한 Inbound Port를 호출한다.
 - MCP Tool annotation과 MCP schema는 MCP Adapter에만 둔다.
 - 검색과 답변 Tool에는 실제 행위에 맞는 read-only, non-destructive hint를 유지한다.
-- OpenAPI를 도입하면 HTTP 계약 설명을 Controller 구현과 분리하는 방식을 검토하되, 사용하지 않는 Spec 계층을 미리 만들지 않는다.
+- OpenAPI Spec을 Controller 구현과 분리하면 같은 `adapter.in.web.<feature>.controller` 패키지에 두고 해당 Controller가 구현한다.
+- 실제 HTTP 계약이 없는 기능을 위해 Spec 계층을 미리 만들지 않는다.
 
 ## 16. Kotlin 코드 작성 기준
 
@@ -372,6 +385,7 @@ Outbound Port는 다음 외부 능력을 표현한다.
 - Domain 상태 전이와 불변식은 Spring 없는 순수 단위 테스트로 검증한다.
 - Application Service는 Outbound Port mock/fake로 Use Case 흐름을 검증한다.
 - Web/MCP/Kafka Adapter는 Request/Message 변환과 경계 계약을 검증한다.
+- Web Adapter 테스트는 운영 코드의 기능 우선 패키지 구조를 따라 배치한다.
 - PostgreSQL, Kafka, Redis, Milvus 연동은 Testcontainers 또는 명시적 integration profile로 검증한다.
 - Redis Lock은 owner token, TTL, 중복 획득, 실패 해제를 테스트한다.
 - Kafka Consumer는 concurrent lock과 durable processed-message 멱등성을 각각 테스트한다.

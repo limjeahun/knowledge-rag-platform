@@ -4,6 +4,7 @@ import dev.study.airag.application.dto.result.KnowledgeDocumentEventDeliveryFail
 import dev.study.airag.application.dto.result.KnowledgeDocumentEventDeliveryResult
 import dev.study.airag.application.outbox.OutboxEnvelope
 import dev.study.airag.application.port.`in`.DeliverPendingKnowledgeDocumentEventsUseCase
+import dev.study.airag.application.port.out.KnowledgeGraphIndexPort
 import dev.study.airag.application.port.out.KnowledgeIndexPort
 import dev.study.airag.application.port.out.OutboxEventPort
 import dev.study.airag.application.port.out.PublishDocumentIndexingPort
@@ -19,6 +20,7 @@ class DeliverPendingKnowledgeDocumentEventsService(
     private val outboxEventPort: OutboxEventPort,
     private val publishDocumentIndexingPort: PublishDocumentIndexingPort,
     private val knowledgeIndexPort: KnowledgeIndexPort,
+    private val knowledgeGraphIndexPort: KnowledgeGraphIndexPort,
     private val clock: Clock,
 ) : DeliverPendingKnowledgeDocumentEventsUseCase {
     override fun deliverPending(limit: Int): KnowledgeDocumentEventDeliveryResult {
@@ -55,7 +57,12 @@ class DeliverPendingKnowledgeDocumentEventsService(
             }
 
             is KnowledgeDocumentDeleted -> {
+                /*
+                 * 두 저장소는 모두 삭제된 문서의 파생 인덱스다. 호출이 중간에 실패해도
+                 * Outbox가 미완료로 남아 재시도하므로 각 remove는 멱등적으로 구현한다.
+                 */
                 knowledgeIndexPort.remove(event.documentId)
+                knowledgeGraphIndexPort.remove(event.documentId)
             }
         }
     }

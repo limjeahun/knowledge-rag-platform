@@ -79,7 +79,7 @@ spring:
   data:
     redis:
       host: "${REDIS_HOST:localhost}"
-      port: "${REDIS_PORT:6379}"
+      port: "${REDIS_PORT:16379}"
       repositories:
         enabled: false
 
@@ -107,6 +107,15 @@ app:
     chunk-size: "${KNOWLEDGE_CHUNK_SIZE:500}"
     min-chunk-size-chars: "${KNOWLEDGE_MIN_CHUNK_CHARS:100}"
     max-chunks: "${KNOWLEDGE_MAX_CHUNKS:1000}"
+    graph:
+      # Disabled by default so existing Milvus Vector RAG behavior is unchanged until explicitly enabled.
+      enabled: "${KNOWLEDGE_GRAPH_ENABLED:false}"
+      ontology-location: "${KNOWLEDGE_GRAPH_ONTOLOGY:classpath:ontology/knowledge-ontology-v1.json}"
+      extraction-model: "${KNOWLEDGE_GRAPH_MODEL:qwen3.6:27b}"
+      chunks-per-request: "${KNOWLEDGE_GRAPH_CHUNKS_PER_REQUEST:4}"
+      minimum-confidence: "${KNOWLEDGE_GRAPH_MIN_CONFIDENCE:0.7}"
+      max-entities-per-document: "${KNOWLEDGE_GRAPH_MAX_ENTITIES:200}"
+      max-relations-per-document: "${KNOWLEDGE_GRAPH_MAX_RELATIONS:400}"
 
 management:
   endpoints:

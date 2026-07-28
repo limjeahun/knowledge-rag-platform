@@ -32,11 +32,11 @@ class RegisterKnowledgeDocumentService(
     override fun register(command: RegisterKnowledgeDocumentCommand): RegisteredKnowledgeDocumentResult {
         val document =
             KnowledgeDocument.register(
-                id              = DocumentId.newId(),
-                title           = command.title,
+                id = DocumentId.newId(),
+                title = command.title,
                 originalContent = command.content,
-                metadata        = command.metadata,
-                now             = clock.instant(),
+                metadata = command.metadata,
+                now = clock.instant(),
             )
         documentPort.save(document)
 

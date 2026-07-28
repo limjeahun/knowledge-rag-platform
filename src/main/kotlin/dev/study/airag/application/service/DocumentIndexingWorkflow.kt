@@ -19,6 +19,7 @@ class DocumentIndexingWorkflow(
     private val documentPort: KnowledgeDocumentPort,
     private val chunkDocumentPort: ChunkKnowledgeDocumentPort,
     private val knowledgeIndexPort: KnowledgeIndexPort,
+    private val projectKnowledgeGraphService: ProjectKnowledgeGraphService,
     private val completionPort: DocumentIndexingCompletionPort,
     private val clock: Clock,
 ) {
@@ -59,6 +60,13 @@ class DocumentIndexingWorkflow(
             val chunks = chunkDocumentPort.chunk(document)
             require(chunks.isNotEmpty()) { "임베딩을 생성하기에 문서 내용이 너무 짧습니다." }
             knowledgeIndexPort.replace(document.id, document.version, chunks)
+            /*
+             * Milvus 청크와 지식 그래프는 모두 원문에서 재생성하는 검색 프로젝션이다.
+             * 그래프 기능이 활성화된 경우 두 프로젝션이 모두 현재 문서 버전으로 교체되어야만
+             * Aggregate를 INDEXED로 확정한다. 그래프 추출 실패를 무시하면 INDEXED의 의미가
+             * 배포마다 달라지고 사용자는 오래된 관계를 최신 근거로 오해할 수 있다.
+             */
+            projectKnowledgeGraphService.project(document, chunks)
 
             document.completeIndexing(clock.instant())
             documentPort.save(document)

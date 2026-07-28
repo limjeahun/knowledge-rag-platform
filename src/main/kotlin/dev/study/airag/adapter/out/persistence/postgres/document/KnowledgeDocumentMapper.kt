@@ -39,6 +39,4 @@ class KnowledgeDocumentMapper(
             indexedAt = entity.indexedAt,
             updatedAt = entity.updatedAt,
         )
-    
-        
 }
