@@ -56,7 +56,7 @@ spring:
 
   # Kafka carries document-indexing requests published from the transactional outbox.
   kafka:
-    bootstrap-servers: "${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}"
+    bootstrap-servers: "${KAFKA_BOOTSTRAP_SERVERS:localhost:19092}"
     consumer:
       group-id: "${KAFKA_CONSUMER_GROUP:knowledge-indexer}"
       auto-offset-reset: earliest

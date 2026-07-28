@@ -2,19 +2,19 @@ package dev.study.airag.adapter.`in`.web.common.exception
 
 import dev.study.airag.adapter.`in`.web.knowledge.controller.KnowledgeDocumentController
 import dev.study.airag.adapter.`in`.web.knowledge.controller.KnowledgeRetrievalController
-import dev.study.airag.application.dto.command.DeleteKnowledgeDocumentCommand
-import dev.study.airag.application.dto.command.RetryKnowledgeDocumentIndexingCommand
-import dev.study.airag.application.dto.query.AnswerKnowledgeQuestionQuery
-import dev.study.airag.application.exception.KnowledgeAnswerGenerationException
-import dev.study.airag.application.exception.KnowledgeAnswerGenerationFailure
-import dev.study.airag.application.exception.KnowledgeDocumentNotFoundException
-import dev.study.airag.application.port.`in`.AnswerKnowledgeQuestionUseCase
-import dev.study.airag.application.port.`in`.DeleteKnowledgeDocumentUseCase
-import dev.study.airag.application.port.`in`.GetKnowledgeDocumentUseCase
-import dev.study.airag.application.port.`in`.ListKnowledgeDocumentsUseCase
-import dev.study.airag.application.port.`in`.RegisterKnowledgeDocumentUseCase
-import dev.study.airag.application.port.`in`.RetryKnowledgeDocumentIndexingUseCase
-import dev.study.airag.application.port.`in`.SearchKnowledgeUseCase
+import dev.study.airag.application.knowledge.dto.command.DeleteKnowledgeDocumentCommand
+import dev.study.airag.application.knowledge.dto.command.RetryKnowledgeDocumentIndexingCommand
+import dev.study.airag.application.knowledge.dto.query.AnswerKnowledgeQuestionQuery
+import dev.study.airag.application.knowledge.exception.KnowledgeAnswerGenerationException
+import dev.study.airag.application.knowledge.exception.KnowledgeAnswerGenerationFailure
+import dev.study.airag.application.knowledge.exception.KnowledgeDocumentNotFoundException
+import dev.study.airag.application.knowledge.port.`in`.AnswerKnowledgeQuestionUseCase
+import dev.study.airag.application.knowledge.port.`in`.DeleteKnowledgeDocumentUseCase
+import dev.study.airag.application.knowledge.port.`in`.GetKnowledgeDocumentUseCase
+import dev.study.airag.application.knowledge.port.`in`.ListKnowledgeDocumentsUseCase
+import dev.study.airag.application.knowledge.port.`in`.RegisterKnowledgeDocumentUseCase
+import dev.study.airag.application.knowledge.port.`in`.RetryKnowledgeDocumentIndexingUseCase
+import dev.study.airag.application.knowledge.port.`in`.SearchKnowledgeUseCase
 import dev.study.airag.domain.exception.InvalidDocumentStateTransitionException
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.any
@@ -136,7 +136,7 @@ class ApiExceptionHandlerTests(
             .`when`(answerUseCase)
             .answer(
                 any(AnswerKnowledgeQuestionQuery::class.java)
-                    ?: AnswerKnowledgeQuestionQuery(""),
+                    ?: AnswerKnowledgeQuestionQuery("valid question"),
             )
 
         mockMvc

@@ -1,13 +1,13 @@
 package dev.study.airag.adapter.`in`.web.knowledge.controller
 
-import dev.study.airag.application.port.`in`.AnswerKnowledgeQuestionUseCase
-import dev.study.airag.application.port.`in`.DeleteKnowledgeDocumentUseCase
-import dev.study.airag.application.port.`in`.GetKnowledgeDocumentUseCase
-import dev.study.airag.application.port.`in`.ListKnowledgeDocumentsUseCase
-import dev.study.airag.application.port.`in`.RegisterKnowledgeDocumentUseCase
-import dev.study.airag.application.port.`in`.RetryKnowledgeDocumentIndexingUseCase
-import dev.study.airag.application.port.`in`.SearchKnowledgeUseCase
-import dev.study.airag.config.OpenApiConfig
+import dev.study.airag.application.knowledge.port.`in`.AnswerKnowledgeQuestionUseCase
+import dev.study.airag.application.knowledge.port.`in`.DeleteKnowledgeDocumentUseCase
+import dev.study.airag.application.knowledge.port.`in`.GetKnowledgeDocumentUseCase
+import dev.study.airag.application.knowledge.port.`in`.ListKnowledgeDocumentsUseCase
+import dev.study.airag.application.knowledge.port.`in`.RegisterKnowledgeDocumentUseCase
+import dev.study.airag.application.knowledge.port.`in`.RetryKnowledgeDocumentIndexingUseCase
+import dev.study.airag.application.knowledge.port.`in`.SearchKnowledgeUseCase
+import dev.study.airag.config.web.OpenApiConfig
 import org.junit.jupiter.api.Test
 import org.springdoc.core.configuration.SpringDocConfiguration
 import org.springdoc.core.properties.SpringDocConfigProperties

@@ -1,10 +1,10 @@
 package dev.study.airag.adapter.out.ontology.json
 
-import dev.study.airag.application.port.out.KnowledgeOntologyPort
-import dev.study.airag.application.port.out.dto.KnowledgeOntology
-import dev.study.airag.application.port.out.dto.OntologyEntityType
-import dev.study.airag.application.port.out.dto.OntologyRelationType
-import dev.study.airag.config.KnowledgeGraphProperties
+import dev.study.airag.application.graph.port.out.KnowledgeOntologyPort
+import dev.study.airag.application.graph.port.out.dto.KnowledgeOntology
+import dev.study.airag.application.graph.port.out.dto.OntologyEntityType
+import dev.study.airag.application.graph.port.out.dto.OntologyRelationType
+import dev.study.airag.config.graph.KnowledgeGraphProperties
 import org.springframework.core.io.ResourceLoader
 import org.springframework.stereotype.Component
 import tools.jackson.databind.ObjectMapper

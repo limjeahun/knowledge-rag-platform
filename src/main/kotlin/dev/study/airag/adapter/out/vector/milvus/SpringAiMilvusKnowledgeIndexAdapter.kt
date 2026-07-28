@@ -1,8 +1,9 @@
 package dev.study.airag.adapter.out.vector.milvus
 
-import dev.study.airag.application.dto.query.SearchKnowledgeQuery
-import dev.study.airag.application.dto.result.KnowledgeSearchHit
-import dev.study.airag.application.port.out.KnowledgeIndexPort
+import dev.study.airag.application.knowledge.dto.query.SearchKnowledgeQuery
+import dev.study.airag.application.knowledge.dto.result.KnowledgeSearchHit
+import dev.study.airag.application.knowledge.port.out.KnowledgeIndexPort
+import dev.study.airag.application.knowledge.port.out.dto.KnowledgeIndexReplacement
 import dev.study.airag.domain.model.KnowledgeChunk
 import dev.study.airag.domain.vo.DocumentId
 import org.springframework.ai.document.Document
@@ -25,13 +26,9 @@ class SpringAiMilvusKnowledgeIndexAdapter(
     /** 
      * 이전 버전의 근거가 검색되지 않도록 모든 기존 근거를 제거한 후 새 버전을 저장한다. 
      */
-    override fun replace(
-        documentId: DocumentId,
-        documentVersion: Long,
-        chunks: List<KnowledgeChunk>,
-    ) {
-        remove(documentId)
-        vectorStore.add(chunks.map { it.toVectorDocument() })
+    override fun replace(replacement: KnowledgeIndexReplacement) {
+        remove(replacement.documentId)
+        vectorStore.add(replacement.chunks.map { it.toVectorDocument() })
     }
 
     /** 

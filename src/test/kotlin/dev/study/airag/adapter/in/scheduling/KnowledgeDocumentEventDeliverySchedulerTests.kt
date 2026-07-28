@@ -1,8 +1,8 @@
 package dev.study.airag.adapter.`in`.scheduling
 
-import dev.study.airag.application.dto.result.KnowledgeDocumentEventDeliveryFailure
-import dev.study.airag.application.dto.result.KnowledgeDocumentEventDeliveryResult
-import dev.study.airag.application.port.`in`.DeliverPendingKnowledgeDocumentEventsUseCase
+import dev.study.airag.application.knowledge.dto.result.KnowledgeDocumentEventDeliveryFailure
+import dev.study.airag.application.knowledge.dto.result.KnowledgeDocumentEventDeliveryResult
+import dev.study.airag.application.knowledge.port.`in`.DeliverPendingKnowledgeDocumentEventsUseCase
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.junit.jupiter.api.Test
 import java.util.UUID

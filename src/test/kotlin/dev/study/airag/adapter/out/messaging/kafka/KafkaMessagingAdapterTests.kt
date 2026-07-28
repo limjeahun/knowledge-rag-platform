@@ -1,6 +1,6 @@
 package dev.study.airag.adapter.out.messaging.kafka
 
-import dev.study.airag.application.port.out.dto.DocumentIndexingPublication
+import dev.study.airag.application.knowledge.port.out.dto.DocumentIndexingPublication
 import dev.study.airag.domain.vo.DocumentId
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentCaptor

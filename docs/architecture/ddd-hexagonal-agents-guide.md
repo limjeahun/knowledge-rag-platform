@@ -805,6 +805,10 @@ Parameter Object의 장점:
 - 테스트 fixture를 만들기 쉽다.
 - Controller와 Application 사이 경계가 선명해진다.
 
+프로젝트가 소유한 Application Service, Port, 내부 helper의 메서드 파라미터는 최대 2개로 제한한다. 3개 이상의 값이 필요하면 primitive를 그대로 나열하지 말고 `Command`, `Query`, `Criteria`, `Context`처럼 호출 의도를 드러내는 Parameter Object로 묶는다.
+
+Kotlin 운영 코드는 top-level 타입 하나당 파일 하나를 사용하며 파일명은 타입명과 일치시킨다. DTO, Result, 예외, Port 보조 모델도 같은 규칙을 따른다. 타입을 선언하지 않는 순수 extension mapping 함수는 책임이 하나인 `*Mappings.kt` 파일에 함께 둘 수 있다.
+
 ## 3. Result는 Domain을 밖으로 내보내기 위한 Application 모델이다
 
 Application Result는 HTTP Response가 아니다. 화면 문구, HTTP 상태, JSON naming은 몰라야 한다.
@@ -2129,6 +2133,8 @@ Controller가 하지 말아야 할 일:
 | public mutable list getter | aggregate 외부에서 상태가 바뀐다. | `List.copyOf(...)` 반환과 behavior method 제공 |
 | Controller에서 `Optional` 처리 | 부재 처리 정책이 presentation에 새어 나간다. | Service에서 예외 또는 생성 정책 결정 |
 | Mapper가 repository 호출 | 번역 책임과 조회 책임이 섞인다. | Adapter가 repository를 호출하고 mapper는 변환만 수행 |
+| 소유한 메서드에 파라미터 3개 이상 나열 | 호출 의도가 흐려지고 변경 때마다 호출부가 함께 깨진다. | 최대 2개로 제한하고 `Command`/`Query`/`Criteria` 같은 Parameter Object 사용 |
+| Kotlin 파일 하나에 여러 top-level 타입 선언 | 탐색, 변경 영향 파악, 타입 단위 이동이 어려워진다. | top-level 타입당 파일 하나를 사용하고 파일명을 타입명과 일치 |
 | `process(...)`, `handle(...)` 남발 | 코드가 업무 언어를 잃는다. | 유스케이스 이름으로 메서드명 변경 |
 
 ## 스멜 1: Primitive Obsession
@@ -2150,6 +2156,22 @@ public void rentItem(RentalMember member, RentalItem item) {
 ```
 
 Application boundary에서는 `RentItemCommand`로 받고, Domain boundary에서는 `RentalMember`, `RentalItem`으로 바꾼다.
+
+## 스멜 1-1: Long Parameter List
+
+나쁜 예:
+
+```java
+List<GraphEntity> searchEntities(String text, String type, int limit);
+```
+
+좋은 예:
+
+```java
+List<GraphEntity> searchEntities(GraphEntitySearchCriteria criteria);
+```
+
+두 값까지는 각각의 의미가 명확하면 그대로 전달할 수 있다. 세 값부터는 단순히 인자 수를 줄이기 위한 묶음이 아니라, 호출의 업무 의미를 이름으로 표현하는 Parameter Object를 사용한다.
 
 ## 스멜 2: Anemic Domain Model
 
@@ -3215,7 +3237,8 @@ class HexagonalArchitectureTest {
 - [ ] 목적이 같은 반복 유스케이스는 private functional skeleton으로 묶고, 달라지는 aggregate behavior만 `Consumer`/`Function`으로 주입했는가?
 - [ ] functional skeleton이 adapter 구현체가 아니라 outbound port method reference만 사용하는가?
 - [ ] lambda 안에 aggregate/domain policy로 옮겨야 할 비즈니스 규칙이 숨어 있지 않은가?
-- [ ] 함수 파라미터가 많거나 business branch가 늘어나는 경우 일반화를 멈추고 유스케이스를 나누었는가?
+- [ ] 프로젝트가 소유한 Application Service, Port, 내부 helper의 파라미터가 최대 2개인가?
+- [ ] 3개 이상의 입력은 `Command`, `Query`, `Criteria`, `Context` 같은 Parameter Object로 묶었는가?
 - [ ] multi-branch result가 nullable field/string/map이 아니라 필요한 경우 `sealed interface` + `record`로 표현되는가?
 
 ## Mapper
@@ -3232,6 +3255,7 @@ class HexagonalArchitectureTest {
 - [ ] boolean flag로 서로 다른 업무 행위를 한 메서드에 합치지 않았는가?
 - [ ] service가 transaction script처럼 모든 검증과 상태 변경을 직접 처리하지 않는가?
 - [ ] 하나의 service가 request, repository, mapper, response를 모두 아는 God Service가 되지 않았는가?
+- [ ] 운영 Kotlin 파일이 top-level 타입 하나만 가지며 파일명이 타입명과 일치하는가?
 - [ ] Web DTO가 application/domain 내부로 터널링되지 않는가?
 - [ ] Mapper가 판단하지 않고 번역만 하는가?
 - [ ] 주석으로 설명해야만 이해되는 이름을 도메인 언어로 고칠 수 없는가?
@@ -3259,6 +3283,8 @@ class HexagonalArchitectureTest {
 - adapter.out.persistence는 outbound port를 구현하고 mapper를 통해 entity-domain 변환만 수행한다.
 - Request DTO는 domain VO를 만들지 않고 primitive/simple field로 Command를 만든다.
 - Application Command/Query는 Parameter Object이며, adapter-facing 입력은 primitive/simple field로 유지한다.
+- 프로젝트가 소유한 Application Service, Port, 내부 helper의 파라미터는 최대 2개로 제한하고, 3개 이상의 입력은 업무 의미가 드러나는 Parameter Object로 묶어라.
+- Kotlin 운영 코드는 top-level 타입 하나당 파일 하나를 사용하고 파일명을 타입명과 일치시켜라. 순수 mapping 함수만 타입 선언 없는 `*Mappings.kt` 파일에 함께 둘 수 있다.
 - Application Service에서 Command를 domain VO로 변환하고 aggregate behavior를 호출한다.
 - 목적이 같은 application service 흐름은 private functional skeleton으로 고정하고, 달라지는 행위만 `Consumer`, `Function`, `Predicate`로 주입하라.
 - 함수형 골격은 outbound port method reference와 aggregate behavior 호출만 조합해야 하며, adapter 구현체나 비즈니스 규칙을 lambda 안에 숨기지 마라.

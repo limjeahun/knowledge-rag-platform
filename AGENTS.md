@@ -165,14 +165,21 @@ dev.study.airag
 │   ├── model
 │   └── vo
 ├── application
-│   ├── dto
-│   │   ├── command
-│   │   ├── query
-│   │   └── result
-│   ├── port
-│   │   ├── in
-│   │   └── out
-│   └── service
+│   └── <feature>
+│       ├── dto
+│       │   ├── command
+│       │   ├── query
+│       │   └── result
+│       ├── exception
+│       ├── mapper
+│       ├── outbox
+│       ├── port
+│       │   ├── in
+│       │   └── out
+│       │       └── dto
+│       ├── policy
+│       ├── service
+│       └── validation
 ├── adapter
 │   ├── in
 │   │   ├── web
@@ -198,15 +205,26 @@ dev.study.airag
 │       │   └── redis
 │       └── ai
 │           └── ollama
+│               └── <feature-or-capability>
 ├── common
 └── config
+    ├── graph
+    ├── ocr
+    └── web
 ```
 
-- 최상위 패키지는 Hexagonal 계층 경계를 우선하고, `adapter.in.web` 내부는 `knowledge`, `graph`, `ocr` 같은 기능을 먼저 나누는 Package-by-Feature를 사용한다.
+- 최상위 패키지는 Hexagonal 계층 경계를 우선하고, `application`과 `adapter.in.web` 내부는 `knowledge`, `graph`, `ocr` 같은 기능을 먼저 나누는 Package-by-Feature를 사용한다.
+- Application 코드는 `application.<feature>` 아래에서 `dto`, `exception`, `mapper`, `outbox`, `port`, `policy`, `service`, `validation` 역할로 나눈다. 모든 기능에 모든 하위 패키지를 미리 만들지 않고 실제 타입이 있을 때만 만든다.
+- `knowledge`, `graph`, `ocr`는 하나의 `knowledge` Bounded Context와 단일 Gradle 모듈 안의 기능 네임스페이스다. 별도 Bounded Context, 모듈, 마이크로서비스 경계로 간주하지 않는다.
 - 각 Web 기능 패키지 안에서 `controller`, `request`, `response`, `mapper`, 필요한 경우 `exception`으로 역할을 나눈다.
 - Controller와 해당 OpenAPI Spec은 같은 `<feature>.controller` 패키지에 둔다.
 - `adapter.in.web.common`에는 둘 이상의 Web 기능이 실제로 공유하는 오류 응답과 전역 예외 처리만 둔다. 기능 전용 타입이나 편의성 코드의 임시 보관소로 사용하지 않는다.
 - Web 기능 패키지는 다른 Web 기능의 Controller, Request, Response, Mapper를 직접 호출하거나 재사용하지 않고 Application Inbound Port를 통해 협력한다.
+- Ollama Adapter는 `adapter.out.ai.ollama.<feature-or-capability>` 아래에 두어 지식 답변, 그래프 추출, 문서 청킹, OCR 책임을 구분한다.
+- 여러 기능의 공통 Application wiring은 `config` 루트에 두고, 기능 또는 프로토콜 전용 설정은 `config.<feature>` 또는 `config.web`에 둔다.
+- 운영 Kotlin 코드는 top-level 타입 하나당 파일 하나를 사용하고 파일명은 타입명과 일치시킨다. DTO, Result, 예외, Port 보조 모델도 예외 없이 각각 독립 파일에 둔다.
+- 같은 경계의 순수 extension mapping 함수는 타입 선언 없이 목적이 드러나는 `*Mappings.kt` 파일에 함께 둘 수 있다.
+- 테스트 패키지는 운영 코드의 feature-first 패키지를 그대로 반영한다.
 - 승인 없이 전체 구조를 한 번에 재작성하지 않는다. Vertical Slice 단위로 이전하고 매 단계 테스트를 통과시킨다.
 
 ## 9. DTO와 경계 모델
@@ -214,7 +232,7 @@ dev.study.airag
 - Web Request는 `adapter.in.web.<feature>.request`에 둔다.
 - Web Response는 `adapter.in.web.<feature>.response`에 둔다.
 - 둘 이상의 Web 기능이 공유하는 오류 응답처럼 기능 중립적인 HTTP 계약만 `adapter.in.web.common.response`에 둔다.
-- Application Command, Query, Result는 `application.dto` 아래에 둔다.
+- Application Command, Query, Result는 `application.<feature>.dto` 아래에 둔다.
 - Web Request는 primitive/simple field를 가진 Command 또는 Query로만 변환한다.
 - Web Request가 Domain VO를 직접 만들지 않는다.
 - Application Service가 Command/Query를 Domain VO로 변환한다.
@@ -334,6 +352,8 @@ Outbound Port는 다음 외부 능력을 표현한다.
 - `Any`, raw `Map`, nullable field를 업무 모델의 기본 구조로 사용하지 않는다.
 - Extension function은 계층 경계를 숨기지 않는 순수 변환에만 사용한다.
 - `require`만으로 모든 Domain 예외를 표현하지 않는다. 호출자가 구분해야 하는 업무 실패에는 명시적인 Domain/Application 예외를 사용한다.
+- 프로젝트가 소유한 Application Service, Port, 내부 helper 메서드의 파라미터는 최대 2개로 제한한다. 3개 이상의 값이 필요하면 업무 의미가 드러나는 Command, Query, Criteria, Context 같은 Parameter Object로 묶는다.
+- Application Service는 유스케이스 흐름을 조율하고 결과 모델의 필드별 조립은 순수 mapping 함수로 분리한다.
 - 하나의 메서드 안에서 Use Case 흐름, 기술 mapping, formatting, primitive validation을 섞지 않는다.
 - 의미 없는 generic abstraction보다 구체적인 도메인 이름을 우선한다.
 

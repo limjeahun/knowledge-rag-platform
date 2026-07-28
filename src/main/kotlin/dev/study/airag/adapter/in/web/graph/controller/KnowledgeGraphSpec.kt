@@ -1,6 +1,8 @@
 package dev.study.airag.adapter.`in`.web.graph.controller
 
 import dev.study.airag.adapter.`in`.web.common.response.ApiErrorResponse
+import dev.study.airag.adapter.`in`.web.graph.request.GetKnowledgeEntityNeighborhoodRequest
+import dev.study.airag.adapter.`in`.web.graph.request.SearchKnowledgeGraphRequest
 import dev.study.airag.adapter.`in`.web.graph.response.KnowledgeGraphEntityResponse
 import dev.study.airag.adapter.`in`.web.graph.response.KnowledgeGraphNeighborhoodResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -11,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springdoc.core.annotations.ParameterObject
 
 @Tag(name = "Knowledge Graph", description = "온톨로지 기반 개체·관계와 원문 provenance 읽기 API")
 interface KnowledgeGraphSpec {
@@ -40,12 +43,8 @@ interface KnowledgeGraphSpec {
         ],
     )
     fun searchEntities(
-        @Parameter(description = "개체 대표 이름에 포함될 문자열")
-        query: String,
-        @Parameter(description = "ontology 개체 타입", example = "TECHNOLOGY")
-        type: String?,
-        @Parameter(description = "최대 결과 수(1~100)")
-        limit: Int,
+        @ParameterObject
+        request: SearchKnowledgeGraphRequest,
     ): List<KnowledgeGraphEntityResponse>
 
     @Operation(
@@ -74,9 +73,7 @@ interface KnowledgeGraphSpec {
     fun getNeighborhood(
         @Parameter(description = "중심 개체 UUID")
         entityId: String,
-        @Parameter(description = "관계 탐색 깊이(1~2)")
-        depth: Int,
-        @Parameter(description = "최대 개체 및 관계 수(1~100)")
-        limit: Int,
+        @ParameterObject
+        request: GetKnowledgeEntityNeighborhoodRequest,
     ): KnowledgeGraphNeighborhoodResponse
 }

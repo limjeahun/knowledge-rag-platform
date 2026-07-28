@@ -1,10 +1,10 @@
 package dev.study.airag.adapter.`in`.web.common.exception
 
 import dev.study.airag.adapter.`in`.web.common.response.ApiErrorResponse
-import dev.study.airag.application.exception.KnowledgeAnswerGenerationException
-import dev.study.airag.application.exception.KnowledgeAnswerGenerationFailure
-import dev.study.airag.application.exception.KnowledgeDocumentNotFoundException
-import dev.study.airag.application.exception.KnowledgeGraphEntityNotFoundException
+import dev.study.airag.application.graph.exception.KnowledgeGraphEntityNotFoundException
+import dev.study.airag.application.knowledge.exception.KnowledgeAnswerGenerationException
+import dev.study.airag.application.knowledge.exception.KnowledgeAnswerGenerationFailure
+import dev.study.airag.application.knowledge.exception.KnowledgeDocumentNotFoundException
 import dev.study.airag.domain.exception.InvalidDocumentStateTransitionException
 import jakarta.validation.ConstraintViolationException
 import org.slf4j.LoggerFactory

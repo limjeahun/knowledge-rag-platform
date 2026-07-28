@@ -1,12 +1,12 @@
 package dev.study.airag.adapter.`in`.web.ocr.controller
 
-import dev.study.airag.application.dto.command.EvaluateOcrCommand
-import dev.study.airag.application.dto.result.OcrEvaluationResult
-import dev.study.airag.application.dto.result.OcrModelAttemptResult
-import dev.study.airag.application.dto.result.OcrModelAttemptStatus
-import dev.study.airag.application.exception.OcrEvaluationUnavailableException
-import dev.study.airag.application.exception.OcrExtractionFailure
-import dev.study.airag.application.port.`in`.EvaluateOcrUseCase
+import dev.study.airag.application.ocr.dto.command.EvaluateOcrCommand
+import dev.study.airag.application.ocr.dto.result.OcrEvaluationResult
+import dev.study.airag.application.ocr.dto.result.OcrModelAttemptResult
+import dev.study.airag.application.ocr.dto.result.OcrModelAttemptStatus
+import dev.study.airag.application.ocr.exception.OcrEvaluationUnavailableException
+import dev.study.airag.application.ocr.exception.OcrExtractionFailure
+import dev.study.airag.application.ocr.port.`in`.EvaluateOcrUseCase
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired

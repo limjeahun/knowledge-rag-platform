@@ -2,7 +2,7 @@ package dev.study.airag.adapter.`in`.web.ocr.mapper
 
 import dev.study.airag.adapter.`in`.web.ocr.response.OcrEvaluationResponse
 import dev.study.airag.adapter.`in`.web.ocr.response.OcrModelAttemptResponse
-import dev.study.airag.application.dto.result.OcrEvaluationResult
+import dev.study.airag.application.ocr.dto.result.OcrEvaluationResult
 
 fun OcrEvaluationResult.toResponse() =
     OcrEvaluationResponse(

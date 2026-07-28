@@ -1,7 +1,7 @@
 package dev.study.airag.adapter.out.cache.redis
 
-import dev.study.airag.application.port.out.DocumentIndexingLease
-import dev.study.airag.application.port.out.DocumentIndexingLockPort
+import dev.study.airag.application.knowledge.port.out.DocumentIndexingLease
+import dev.study.airag.application.knowledge.port.out.DocumentIndexingLockPort
 import io.micrometer.core.instrument.MeterRegistry
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate

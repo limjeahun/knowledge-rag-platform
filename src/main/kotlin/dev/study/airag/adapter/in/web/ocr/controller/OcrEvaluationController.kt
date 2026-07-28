@@ -4,7 +4,7 @@ import dev.study.airag.adapter.`in`.web.ocr.mapper.toCommand
 import dev.study.airag.adapter.`in`.web.ocr.mapper.toResponse
 import dev.study.airag.adapter.`in`.web.ocr.request.OcrEvaluationRequest
 import dev.study.airag.adapter.`in`.web.ocr.response.OcrEvaluationResponse
-import dev.study.airag.application.port.`in`.EvaluateOcrUseCase
+import dev.study.airag.application.ocr.port.`in`.EvaluateOcrUseCase
 import org.springframework.http.MediaType
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.ModelAttribute

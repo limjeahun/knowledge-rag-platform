@@ -1,7 +1,7 @@
 package dev.study.airag.adapter.`in`.web.ocr.controller
 
-import dev.study.airag.application.port.`in`.EvaluateOcrUseCase
-import dev.study.airag.config.OpenApiConfig
+import dev.study.airag.application.ocr.port.`in`.EvaluateOcrUseCase
+import dev.study.airag.config.web.OpenApiConfig
 import org.junit.jupiter.api.Test
 import org.springdoc.core.configuration.SpringDocConfiguration
 import org.springdoc.core.properties.SpringDocConfigProperties

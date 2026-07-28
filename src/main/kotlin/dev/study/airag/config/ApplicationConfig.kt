@@ -1,10 +1,10 @@
 package dev.study.airag.config
 
-import dev.study.airag.application.exception.DocumentIndexingAlreadyInProgressException
-import dev.study.airag.application.exception.DocumentIndexingFailedException
-import dev.study.airag.application.exception.KnowledgeDocumentNotFoundException
-import dev.study.airag.application.port.out.CorrelationIdGenerator
-import dev.study.airag.application.port.out.EventIdGenerator
+import dev.study.airag.application.knowledge.exception.DocumentIndexingAlreadyInProgressException
+import dev.study.airag.application.knowledge.exception.DocumentIndexingFailedException
+import dev.study.airag.application.knowledge.exception.KnowledgeDocumentNotFoundException
+import dev.study.airag.application.knowledge.port.out.CorrelationIdGenerator
+import dev.study.airag.application.knowledge.port.out.EventIdGenerator
 import dev.study.airag.domain.exception.InvalidDocumentStateTransitionException
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory

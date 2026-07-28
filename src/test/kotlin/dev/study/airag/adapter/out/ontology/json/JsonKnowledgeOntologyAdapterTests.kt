@@ -1,6 +1,6 @@
 package dev.study.airag.adapter.out.ontology.json
 
-import dev.study.airag.config.KnowledgeGraphProperties
+import dev.study.airag.config.graph.KnowledgeGraphProperties
 import org.junit.jupiter.api.Test
 import org.springframework.core.io.DefaultResourceLoader
 import tools.jackson.databind.json.JsonMapper

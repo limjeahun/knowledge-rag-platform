@@ -2,7 +2,7 @@ package dev.study.airag.adapter.`in`.web.ocr.exception
 
 import dev.study.airag.adapter.`in`.web.common.response.ApiErrorResponse
 import dev.study.airag.adapter.`in`.web.ocr.controller.OcrEvaluationController
-import dev.study.airag.application.exception.OcrEvaluationUnavailableException
+import dev.study.airag.application.ocr.exception.OcrEvaluationUnavailableException
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.springframework.http.HttpStatus
@@ -11,10 +11,6 @@ import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.multipart.MaxUploadSizeExceededException
 import org.springframework.web.multipart.support.MissingServletRequestPartException
-
-class UnsupportedOcrImageTypeException(
-    contentType: String?,
-) : RuntimeException("지원하지 않는 OCR 이미지 형식입니다: ${contentType ?: "알 수 없음"}")
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(assignableTypes = [OcrEvaluationController::class])

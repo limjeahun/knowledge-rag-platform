@@ -2,7 +2,7 @@ package dev.study.airag.adapter.`in`.web.ocr.mapper
 
 import dev.study.airag.adapter.`in`.web.ocr.exception.UnsupportedOcrImageTypeException
 import dev.study.airag.adapter.`in`.web.ocr.request.OcrEvaluationRequest
-import dev.study.airag.application.dto.command.EvaluateOcrCommand
+import dev.study.airag.application.ocr.dto.command.EvaluateOcrCommand
 import org.springframework.http.MediaType
 import org.springframework.web.multipart.support.MissingServletRequestPartException
 import java.util.Locale

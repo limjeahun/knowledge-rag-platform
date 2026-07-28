@@ -8,7 +8,7 @@ import dev.study.airag.adapter.out.persistence.postgres.outbox.OutboxEventReposi
 import dev.study.airag.adapter.out.persistence.postgres.outbox.PostgresOutboxAdapter
 import dev.study.airag.adapter.out.persistence.postgres.processedmessage.PostgresDocumentIndexingCompletionAdapter
 import dev.study.airag.adapter.out.persistence.postgres.processedmessage.ProcessedMessageRepository
-import dev.study.airag.application.outbox.OutboxEnvelope
+import dev.study.airag.application.knowledge.outbox.OutboxEnvelope
 import dev.study.airag.domain.event.DocumentIndexingRequested
 import dev.study.airag.domain.event.KnowledgeDocumentDeleted
 import dev.study.airag.domain.model.DocumentIndexingStatus

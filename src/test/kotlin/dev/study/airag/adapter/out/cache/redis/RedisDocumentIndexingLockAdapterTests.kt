@@ -1,6 +1,6 @@
 package dev.study.airag.adapter.out.cache.redis
 
-import dev.study.airag.application.port.out.DocumentIndexingLease
+import dev.study.airag.application.knowledge.port.out.DocumentIndexingLease
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll

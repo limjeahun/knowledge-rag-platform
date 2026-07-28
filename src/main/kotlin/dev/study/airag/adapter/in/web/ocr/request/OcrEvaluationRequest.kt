@@ -1,6 +1,6 @@
 package dev.study.airag.adapter.`in`.web.ocr.request
 
-import dev.study.airag.application.dto.command.EvaluateOcrCommand
+import dev.study.airag.application.ocr.dto.command.EvaluateOcrCommand
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotBlank
 import org.springframework.web.multipart.MultipartFile

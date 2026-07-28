@@ -1,6 +1,6 @@
 package dev.study.airag.adapter.out.persistence.postgres.processedmessage
 
-import dev.study.airag.application.port.out.DocumentIndexingCompletionPort
+import dev.study.airag.application.knowledge.port.out.DocumentIndexingCompletionPort
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.transaction.support.TransactionSynchronizationManager

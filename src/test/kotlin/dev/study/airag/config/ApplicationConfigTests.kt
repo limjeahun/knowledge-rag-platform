@@ -1,8 +1,8 @@
 package dev.study.airag.config
 
-import dev.study.airag.application.exception.DocumentIndexingAlreadyInProgressException
-import dev.study.airag.application.exception.DocumentIndexingFailedException
-import dev.study.airag.application.exception.KnowledgeDocumentNotFoundException
+import dev.study.airag.application.knowledge.exception.DocumentIndexingAlreadyInProgressException
+import dev.study.airag.application.knowledge.exception.DocumentIndexingFailedException
+import dev.study.airag.application.knowledge.exception.KnowledgeDocumentNotFoundException
 import dev.study.airag.domain.exception.InvalidDocumentStateTransitionException
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.clients.consumer.ConsumerRecord

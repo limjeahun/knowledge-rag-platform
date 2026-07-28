@@ -1,10 +1,10 @@
 package dev.study.airag.adapter.`in`.mcp
 
-import dev.study.airag.application.dto.query.AnswerKnowledgeQuestionQuery
-import dev.study.airag.application.dto.query.SearchKnowledgeQuery
-import dev.study.airag.application.dto.result.KnowledgeAnswerResult
-import dev.study.airag.application.port.`in`.AnswerKnowledgeQuestionUseCase
-import dev.study.airag.application.port.`in`.SearchKnowledgeUseCase
+import dev.study.airag.application.knowledge.dto.query.AnswerKnowledgeQuestionQuery
+import dev.study.airag.application.knowledge.dto.query.SearchKnowledgeQuery
+import dev.study.airag.application.knowledge.dto.result.KnowledgeAnswerResult
+import dev.study.airag.application.knowledge.port.`in`.AnswerKnowledgeQuestionUseCase
+import dev.study.airag.application.knowledge.port.`in`.SearchKnowledgeUseCase
 import org.springframework.ai.mcp.annotation.McpTool
 import org.springframework.ai.mcp.annotation.McpToolParam
 import org.springframework.stereotype.Component

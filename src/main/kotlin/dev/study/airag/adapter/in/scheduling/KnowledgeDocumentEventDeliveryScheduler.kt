@@ -1,6 +1,6 @@
 package dev.study.airag.adapter.`in`.scheduling
 
-import dev.study.airag.application.port.`in`.DeliverPendingKnowledgeDocumentEventsUseCase
+import dev.study.airag.application.knowledge.port.`in`.DeliverPendingKnowledgeDocumentEventsUseCase
 import io.micrometer.core.instrument.MeterRegistry
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value

@@ -1,16 +1,18 @@
 package dev.study.airag.adapter.`in`.web.graph.controller
 
+import dev.study.airag.adapter.`in`.web.graph.mapper.toQuery
 import dev.study.airag.adapter.`in`.web.graph.mapper.toResponse
+import dev.study.airag.adapter.`in`.web.graph.request.GetKnowledgeEntityNeighborhoodRequest
+import dev.study.airag.adapter.`in`.web.graph.request.SearchKnowledgeGraphRequest
 import dev.study.airag.adapter.`in`.web.graph.response.KnowledgeGraphEntityResponse
 import dev.study.airag.adapter.`in`.web.graph.response.KnowledgeGraphNeighborhoodResponse
-import dev.study.airag.application.dto.query.GetKnowledgeEntityNeighborhoodQuery
-import dev.study.airag.application.dto.query.SearchKnowledgeGraphQuery
-import dev.study.airag.application.port.`in`.GetKnowledgeEntityNeighborhoodUseCase
-import dev.study.airag.application.port.`in`.SearchKnowledgeGraphUseCase
+import dev.study.airag.application.graph.port.`in`.GetKnowledgeEntityNeighborhoodUseCase
+import dev.study.airag.application.graph.port.`in`.SearchKnowledgeGraphUseCase
+import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.ModelAttribute
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 /**
@@ -22,24 +24,20 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/graph")
 class KnowledgeGraphController(
-    private val searchUseCase:       SearchKnowledgeGraphUseCase,
+    private val searchUseCase: SearchKnowledgeGraphUseCase,
     private val neighborhoodUseCase: GetKnowledgeEntityNeighborhoodUseCase,
 ) : KnowledgeGraphSpec {
     @GetMapping("/entities")
     override fun searchEntities(
-        @RequestParam query: String,
-        @RequestParam(required = false) type: String?,
-        @RequestParam(defaultValue = "20") limit: Int,
-    ): List<KnowledgeGraphEntityResponse> =
-        searchUseCase.search(SearchKnowledgeGraphQuery(query, type, limit)).map { it.toResponse() }
+        @Valid @ModelAttribute request: SearchKnowledgeGraphRequest,
+    ): List<KnowledgeGraphEntityResponse> = searchUseCase.search(request.toQuery()).map { it.toResponse() }
 
     @GetMapping("/entities/{entityId}/neighborhood")
     override fun getNeighborhood(
         @PathVariable entityId: String,
-        @RequestParam(defaultValue = "1") depth: Int,
-        @RequestParam(defaultValue = "50") limit: Int,
+        @Valid @ModelAttribute request: GetKnowledgeEntityNeighborhoodRequest,
     ): KnowledgeGraphNeighborhoodResponse =
         neighborhoodUseCase
-            .getNeighborhood(GetKnowledgeEntityNeighborhoodQuery(entityId, depth, limit))
+            .getNeighborhood(request.toQuery(entityId))
             .toResponse()
 }

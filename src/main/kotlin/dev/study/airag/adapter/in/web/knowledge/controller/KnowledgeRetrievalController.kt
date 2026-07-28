@@ -4,9 +4,9 @@ import dev.study.airag.adapter.`in`.web.knowledge.mapper.toResponse
 import dev.study.airag.adapter.`in`.web.knowledge.request.AskKnowledgeRequest
 import dev.study.airag.adapter.`in`.web.knowledge.response.KnowledgeAnswerResponse
 import dev.study.airag.adapter.`in`.web.knowledge.response.KnowledgeSearchHitResponse
-import dev.study.airag.application.dto.query.SearchKnowledgeQuery
-import dev.study.airag.application.port.`in`.AnswerKnowledgeQuestionUseCase
-import dev.study.airag.application.port.`in`.SearchKnowledgeUseCase
+import dev.study.airag.application.knowledge.dto.query.SearchKnowledgeQuery
+import dev.study.airag.application.knowledge.port.`in`.AnswerKnowledgeQuestionUseCase
+import dev.study.airag.application.knowledge.port.`in`.SearchKnowledgeUseCase
 import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping

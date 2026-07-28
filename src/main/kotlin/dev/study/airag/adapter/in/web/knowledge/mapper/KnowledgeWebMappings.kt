@@ -4,10 +4,10 @@ import dev.study.airag.adapter.`in`.web.knowledge.response.KnowledgeAnswerRespon
 import dev.study.airag.adapter.`in`.web.knowledge.response.KnowledgeDocumentResponse
 import dev.study.airag.adapter.`in`.web.knowledge.response.KnowledgeSearchHitResponse
 import dev.study.airag.adapter.`in`.web.knowledge.response.RegisteredKnowledgeDocumentResponse
-import dev.study.airag.application.dto.result.KnowledgeAnswerResult
-import dev.study.airag.application.dto.result.KnowledgeDocumentResult
-import dev.study.airag.application.dto.result.KnowledgeSearchHit
-import dev.study.airag.application.dto.result.RegisteredKnowledgeDocumentResult
+import dev.study.airag.application.knowledge.dto.result.KnowledgeAnswerResult
+import dev.study.airag.application.knowledge.dto.result.KnowledgeDocumentResult
+import dev.study.airag.application.knowledge.dto.result.KnowledgeSearchHit
+import dev.study.airag.application.knowledge.dto.result.RegisteredKnowledgeDocumentResult
 
 fun RegisteredKnowledgeDocumentResult.toResponse() = RegisteredKnowledgeDocumentResponse(documentId, status.name)
 

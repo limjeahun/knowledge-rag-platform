@@ -1,7 +1,7 @@
 package dev.study.airag.adapter.`in`.messaging
 
-import dev.study.airag.application.dto.command.IndexKnowledgeDocumentCommand
-import dev.study.airag.application.port.`in`.IndexKnowledgeDocumentUseCase
+import dev.study.airag.application.knowledge.dto.command.IndexKnowledgeDocumentCommand
+import dev.study.airag.application.knowledge.port.`in`.IndexKnowledgeDocumentUseCase
 import io.micrometer.core.instrument.MeterRegistry
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener

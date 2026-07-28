@@ -1,6 +1,6 @@
 package dev.study.airag.adapter.out.persistence.postgres.document
 
-import dev.study.airag.application.port.out.KnowledgeDocumentPort
+import dev.study.airag.application.knowledge.port.out.KnowledgeDocumentPort
 import dev.study.airag.domain.model.KnowledgeDocument
 import dev.study.airag.domain.vo.DocumentId
 import org.springframework.stereotype.Component

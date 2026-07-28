@@ -1,6 +1,6 @@
 package dev.study.airag.adapter.`in`.web.knowledge.request
 
-import dev.study.airag.application.dto.command.RegisterKnowledgeDocumentCommand
+import dev.study.airag.application.knowledge.dto.command.RegisterKnowledgeDocumentCommand
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotBlank
 
