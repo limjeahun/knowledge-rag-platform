@@ -11,7 +11,17 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 @ConfigurationProperties(prefix = "app.knowledge.graph")
 data class KnowledgeGraphProperties(
     val enabled: Boolean = false,
-    val ontologyLocation: String = "classpath:ontology/knowledge-ontology-v1.json",
+    val ontologyLocations: List<String> =
+        listOf(
+            "classpath:ontology/core/knowledge-core-v1.ttl",
+            "classpath:ontology/domain/software-architecture-v1.ttl",
+        ),
+    val rootOntologyIri: String = "urn:airag:ontology:software-architecture",
+    val shapesLocation: String = "classpath:ontology/shapes/software-architecture-shapes-v1.ttl",
+    val fusekiDatasetUrl: String = "http://localhost:3030/knowledge",
+    val hybridRetrievalEnabled: Boolean = true,
+    val maxGraphFacts: Int = 20,
+    val maxInferredStatements: Int = 2_000,
     val extractionModel: String = "qwen3.6:27b",
     val chunksPerRequest: Int = 4,
     val minimumConfidence: Double = 0.7,
@@ -19,7 +29,14 @@ data class KnowledgeGraphProperties(
     val maxRelationsPerDocument: Int = 400,
 ) {
     init {
-        require(ontologyLocation.isNotBlank()) { "그래프 온톨로지 위치는 비어 있을 수 없습니다." }
+        require(ontologyLocations.isNotEmpty() && ontologyLocations.none(String::isBlank)) {
+            "OWL 온톨로지 위치는 하나 이상이어야 합니다."
+        }
+        require(rootOntologyIri.isNotBlank()) { "루트 OWL ontology IRI는 비어 있을 수 없습니다." }
+        require(shapesLocation.isNotBlank()) { "SHACL shapes 위치는 비어 있을 수 없습니다." }
+        require(fusekiDatasetUrl.isNotBlank()) { "Fuseki dataset URL은 비어 있을 수 없습니다." }
+        require(maxGraphFacts in 1..100) { "GraphRAG 사실 수는 1 이상 100 이하이어야 합니다." }
+        require(maxInferredStatements > 0) { "추론 statement 제한은 0보다 커야 합니다." }
         require(extractionModel.isNotBlank()) { "그래프 추출 모델명은 비어 있을 수 없습니다." }
     }
 }

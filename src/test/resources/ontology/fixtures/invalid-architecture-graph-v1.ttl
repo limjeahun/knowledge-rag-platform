@@ -1,0 +1,11 @@
+@prefix core: <urn:airag:ontology:knowledge-core#> .
+@prefix fixture: <urn:airag:test:fixture#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+fixture:document-1
+    a core:Document .
+
+fixture:chunk-1
+    a core:DocumentChunk ;
+    core:documentVersion "0"^^xsd:long ;
+    core:chunkOf fixture:document-1 .

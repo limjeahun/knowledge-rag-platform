@@ -107,6 +107,27 @@ services:
       timeout: 3s
       retries: 20
 
+  fuseki:
+    build:
+      context: ./docker/fuseki
+      dockerfile: Dockerfile
+      args:
+        JENA_VERSION: "6.1.0"
+        FUSEKI_SHA1: "b59760331e53f662a7a5ce0481bdf3e58611ee94"
+    image: knowledge-rag-platform/fuseki:6.1.0
+    command: ["--tdb2", "--update", "--loc", "/fuseki/databases", "/knowledge"]
+    environment:
+      JAVA_OPTIONS: "${FUSEKI_JAVA_OPTIONS:--Xms256m -Xmx1024m}"
+    ports:
+      - "${FUSEKI_PORT:-3030}:3030"
+    volumes:
+      - fuseki-data:/fuseki/databases
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:3030/$/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
 volumes:
   postgres-data:
   etcd-data:
@@ -114,3 +135,4 @@ volumes:
   milvus-data:
   kafka-data:
   redis-data:
+  fuseki-data:

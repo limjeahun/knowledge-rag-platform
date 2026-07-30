@@ -1,6 +1,6 @@
-# Kotlin + Spring AI 로컬 RAG/MCP
+# Kotlin + Spring AI 로컬 Hybrid RAG/MCP
 
-JDK 21 LTS, Kotlin, Spring AI 2.0.0으로 만드는 실행형 로컬 지식 검색 백엔드입니다. PostgreSQL은 원문과 업무 상태를 보관하고, Milvus가 유일한 Vector DB로 동작합니다. Kafka, Transactional Outbox, Redis 락을 이용해 문서 색인을 비동기로 처리합니다.
+JDK 21 LTS, Kotlin, Spring AI 2.0.0으로 만드는 실행형 로컬 지식 검색 백엔드입니다. PostgreSQL은 원문과 업무 상태를 보관하고, Milvus가 유일한 Vector DB로 동작합니다. 선택적으로 OWL 2 DL 온톨로지, HermiT 추론, SHACL 검증, Fuseki/TDB2 지식 그래프를 결합한 Hybrid GraphRAG를 사용할 수 있습니다.
 
 ## 기술 구성
 
@@ -13,9 +13,11 @@ JDK 21 LTS, Kotlin, Spring AI 2.0.0으로 만드는 실행형 로컬 지식 검�
 | Async pipeline | Kafka 4.1 + Transactional Outbox |
 | Processing lock | Redis 8.2 |
 | Local AI | Ollama `qwen3.6:27b`, `nomic-embed-text` |
+| Semantic model | OWL 2 DL/Turtle + HermiT + SHACL |
+| RDF graph | Apache Jena Fuseki/TDB2 6.1 |
 | AI protocol | MCP Streamable HTTP `/mcp` |
 
-상세 설계는 `docs/architecture/rag-target-architecture.md`에서 확인할 수 있습니다.
+상세 설계는 `docs/architecture/rag-target-architecture.md`, 온톨로지와 Protégé 작업법은 `docs/ontology`에서 확인할 수 있습니다.
 
 ## 사전 준비
 
@@ -44,7 +46,7 @@ docker compose up -d --wait
 .\gradlew.bat bootRun
 ```
 
-Ollama Desktop이 자동으로 서버를 시작하지 않은 경우 별도 터미널에서 `ollama serve`를 실행합니다. Docker Compose는 PostgreSQL, Milvus, Kafka, Redis만 시작하며 데이터 볼륨은 서비스별로 분리됩니다.
+Ollama Desktop이 자동으로 서버를 시작하지 않은 경우 별도 터미널에서 `ollama serve`를 실행합니다. Docker Compose는 PostgreSQL, Milvus, Kafka, Redis, Fuseki를 시작하며 데이터 볼륨은 서비스별로 분리됩니다.
 
 상태 확인과 종료:
 
@@ -93,6 +95,23 @@ Invoke-RestMethod -Method Delete "http://localhost:8080/api/documents/$($registe
 
 REST와 MCP는 Controller나 Service를 서로 호출하지 않고 동일한 Application Inbound Port를 사용합니다.
 
+## OWL 지식 그래프와 Hybrid GraphRAG
+
+그래프 기능은 기본적으로 비활성화되어 기존 Vector RAG 동작을 보존합니다. OWL 기반 문서 그래프 투영과 hybrid 답변을 활성화하려면 애플리케이션 실행 전에 다음 값을 지정합니다.
+
+```powershell
+$env:KNOWLEDGE_GRAPH_ENABLED="true"
+.\gradlew.bat bootRun
+```
+
+온톨로지는 OWL/Turtle, 그래프 저장소는 Fuseki로 고정됩니다. 활성화된 색인 흐름은 LLM 후보를 애플리케이션 규칙과 SHACL로 검증하고, HermiT가 계산한 사실을 원문 직접 진술과 분리해 저장합니다. `/api/chat` 응답의 `graphFacts`에는 `ASSERTED` 또는 `INFERRED` 구분이 포함됩니다.
+
+- Ontology: `src/main/resources/ontology/core`, `src/main/resources/ontology/domain`
+- SHACL: `src/main/resources/ontology/shapes`
+- Fuseki SPARQL dataset: `http://localhost:3030/knowledge`
+- Protégé 가이드: `docs/ontology/protege-guide.md`
+- 설계·버전·재색인 가이드: `docs/ontology/software-architecture-ontology-guide.md`
+
 ## 관측성과 테스트
 
 ```powershell
@@ -101,8 +120,8 @@ Invoke-WebRequest http://localhost:8080/actuator/prometheus
 .\gradlew.bat clean check
 ```
 
-테스트는 Domain 상태 전이, Application orchestration, Kafka lock 경계, Hexagonal 의존성 규칙을 외부 인프라 없이 검증합니다. 실제 인프라 smoke test는 로컬 Ollama와 Docker Compose 인프라를 시작한 뒤 `requests.http` 순서로 수행합니다.
+테스트는 Domain 상태 전이, Application orchestration, Kafka lock 경계, Hexagonal 의존성, OWL 2 DL 일관성, SHACL, HermiT entailment와 embedded Fuseki SPARQL 왕복을 검증합니다. 실제 전체 인프라 smoke test는 로컬 Ollama와 Docker Compose 인프라를 시작한 뒤 `requests.http` 순서로 수행합니다.
 
 ## 데이터 주의사항
 
-기존 pgvector 볼륨은 자동 삭제하지 않았습니다. 새 구성은 `postgres-data`와 `milvus-data`를 사용하며 pgvector 의존성과 설정은 제거되었습니다. `docker compose down -v`는 PostgreSQL 원문, Milvus index, Kafka, Redis 데이터를 모두 삭제하므로 명시적으로 초기화할 때만 사용하세요. 로컬 Ollama 모델은 이 명령의 영향을 받지 않습니다.
+기존 pgvector 볼륨은 자동 삭제하지 않았습니다. 새 구성은 `postgres-data`와 `milvus-data`를 사용하며 pgvector 의존성과 설정은 제거되었습니다. Flyway V5는 더 이상 사용하지 않는 PostgreSQL 관계형 그래프 프로젝션 테이블만 제거하고 원문 문서와 semantic projection registry는 보존합니다. `docker compose down -v`는 PostgreSQL 원문, Milvus index, Kafka, Redis, Fuseki 데이터를 모두 삭제하므로 명시적으로 초기화할 때만 사용하세요. 로컬 Ollama 모델은 이 명령의 영향을 받지 않습니다.

@@ -1,7 +1,9 @@
 package dev.study.airag.application.knowledge.service
 
 import dev.study.airag.application.graph.port.out.KnowledgeGraphIndexPort
+import dev.study.airag.application.graph.port.out.KnowledgeGraphProjectionRegistryPort
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphProjection
+import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphProjectionReceipt
 import dev.study.airag.application.knowledge.dto.query.SearchKnowledgeQuery
 import dev.study.airag.application.knowledge.dto.result.KnowledgeSearchHit
 import dev.study.airag.application.knowledge.outbox.OutboxEnvelope
@@ -32,8 +34,16 @@ class KnowledgeDocumentEventDeliveryServiceTests {
         val outbox = RecordingOutboxPort(listOf(indexing, removal))
         val index = RecordingKnowledgeIndexPort()
         val graph = RecordingKnowledgeGraphIndexPort()
+        val registry = RecordingKnowledgeGraphProjectionRegistryPort()
         val published = mutableListOf<DocumentIndexingPublication>()
-        val service = service(outbox, index, graph, PublishDocumentIndexingPort { published += it })
+        val service =
+            service(
+                outbox,
+                index,
+                graph,
+                publisher = PublishDocumentIndexingPort { published += it },
+                registry = registry,
+            )
 
         val result = service.deliverPending(10)
 
@@ -41,6 +51,7 @@ class KnowledgeDocumentEventDeliveryServiceTests {
         assertEquals(indexing.eventId, published.single().eventId)
         assertEquals(listOf(removal.event.documentId), index.removed)
         assertEquals(listOf(removal.event.documentId), graph.removed)
+        assertEquals(listOf(removal.event.documentId), registry.retired)
         assertEquals(listOf(indexing.eventId, removal.eventId), result.deliveredEventIds)
         assertEquals(emptyList(), result.failures)
         assertEquals(result.deliveredEventIds, outbox.delivered)
@@ -88,7 +99,8 @@ class KnowledgeDocumentEventDeliveryServiceTests {
         index: KnowledgeIndexPort,
         graphIndex: KnowledgeGraphIndexPort,
         publisher: PublishDocumentIndexingPort = PublishDocumentIndexingPort { },
-    ) = DeliverPendingKnowledgeDocumentEventsService(outbox, publisher, index, graphIndex, clock)
+        registry: KnowledgeGraphProjectionRegistryPort = RecordingKnowledgeGraphProjectionRegistryPort(),
+    ) = DeliverPendingKnowledgeDocumentEventsService(outbox, publisher, index, graphIndex, clock, registry)
 
     private fun indexingEnvelope() =
         OutboxEnvelope(
@@ -147,10 +159,21 @@ class KnowledgeDocumentEventDeliveryServiceTests {
     private class RecordingKnowledgeGraphIndexPort : KnowledgeGraphIndexPort {
         val removed = mutableListOf<DocumentId>()
 
-        override fun replace(projection: KnowledgeGraphProjection) = Unit
+        override fun replace(projection: KnowledgeGraphProjection): KnowledgeGraphProjectionReceipt =
+            error("event delivery does not replace graph projections")
 
         override fun remove(documentId: DocumentId) {
             removed += documentId
+        }
+    }
+
+    private class RecordingKnowledgeGraphProjectionRegistryPort : KnowledgeGraphProjectionRegistryPort {
+        val retired = mutableListOf<DocumentId>()
+
+        override fun activate(receipt: KnowledgeGraphProjectionReceipt) = Unit
+
+        override fun retire(documentId: DocumentId) {
+            retired += documentId
         }
     }
 }

@@ -4,6 +4,7 @@ import dev.study.airag.application.graph.policy.KnowledgeGraphProjectionPolicy
 import dev.study.airag.application.graph.port.`in`.ProjectKnowledgeGraphUseCase
 import dev.study.airag.application.graph.port.out.ExtractKnowledgeGraphPort
 import dev.study.airag.application.graph.port.out.KnowledgeGraphIndexPort
+import dev.study.airag.application.graph.port.out.KnowledgeGraphProjectionRegistryPort
 import dev.study.airag.application.graph.port.out.KnowledgeOntologyPort
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphExtractionRequest
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphProjection
@@ -30,6 +31,7 @@ class ProjectKnowledgeGraphService(
     private val validator: KnowledgeGraphExtractionValidator,
     private val policy: KnowledgeGraphProjectionPolicy,
     private val clock: Clock,
+    private val projectionRegistryPort: KnowledgeGraphProjectionRegistryPort,
 ) : ProjectKnowledgeGraphUseCase {
     /**
      * 기능이 활성화된 경우에만 그래프를 생성하고 현재 문서 버전의 프로젝션을 교체한다.
@@ -68,15 +70,17 @@ class ProjectKnowledgeGraphService(
                     policy = policy,
                 ),
             )
-        knowledgeGraphIndexPort.replace(
-            KnowledgeGraphProjection(
-                documentId = document.id,
-                documentVersion = document.version,
-                ontologyVersion = ontology.version,
-                entities = graph.entities,
-                relations = graph.relations,
-                projectedAt = clock.instant(),
-            ),
-        )
+        val receipt =
+            knowledgeGraphIndexPort.replace(
+                KnowledgeGraphProjection(
+                    documentId = document.id,
+                    documentVersion = document.version,
+                    ontologyVersion = ontology.version,
+                    entities = graph.entities,
+                    relations = graph.relations,
+                    projectedAt = clock.instant(),
+                ),
+            )
+        projectionRegistryPort.activate(receipt)
     }
 }

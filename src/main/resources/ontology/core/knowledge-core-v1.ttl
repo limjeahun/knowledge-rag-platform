@@ -1,0 +1,345 @@
+@prefix core: <urn:airag:ontology:knowledge-core#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<urn:airag:ontology:knowledge-core>
+    a owl:Ontology ;
+    owl:versionIRI <urn:airag:ontology:knowledge-core:1.0.0> ;
+    owl:versionInfo "1.0.0" ;
+    rdfs:label "AIRAG Knowledge Core Ontology"@en ;
+    rdfs:label "AIRAG 지식 핵심 온톨로지"@ko ;
+    rdfs:comment "Domain-neutral classes and properties shared by AIRAG knowledge ontologies."@en ;
+    rdfs:comment "AIRAG의 도메인 온톨로지가 공통으로 사용하는 도메인 중립 클래스와 속성을 정의한다."@ko ;
+    skos:definition "The reusable semantic foundation for document, provenance, agent, and projection concepts in AIRAG."@en .
+
+skos:definition
+    a owl:AnnotationProperty .
+
+skos:example
+    a owl:AnnotationProperty .
+
+core:code
+    a owl:AnnotationProperty ;
+    rdfs:label "application code"@en ;
+    rdfs:label "애플리케이션 코드"@ko ;
+    rdfs:comment "Provides the stable code used when an OWL term crosses the application boundary."@en ;
+    rdfs:comment "OWL 용어가 애플리케이션 경계를 통과할 때 사용하는 안정적인 코드를 제공한다."@ko ;
+    skos:definition "A unique, version-stable identifier that maps an ontology term to an application contract."@en ;
+    skos:example "TECHNOLOGY"@en .
+
+core:extractable
+    a owl:AnnotationProperty ;
+    rdfs:label "extractable by the graph extraction adapter"@en ;
+    rdfs:label "그래프 추출 가능 여부"@ko ;
+    rdfs:comment "Marks a class or object property as available to the LLM graph extraction grammar."@en ;
+    rdfs:comment "클래스나 객체 속성을 LLM 그래프 추출 문법에 노출할 수 있는지 표시한다."@ko ;
+    skos:definition "A boolean annotation controlling whether an ontology term participates in knowledge extraction."@en .
+
+core:KnowledgeEntity
+    a owl:Class ;
+    rdfs:label "Knowledge entity"@en ;
+    rdfs:label "지식 개체"@ko ;
+    rdfs:comment "Anything that may be identified in the knowledge graph."@en ;
+    rdfs:comment "지식 그래프에서 고유하게 식별할 수 있는 모든 대상을 나타낸다."@ko ;
+    skos:definition "The root class for identifiable real-world, conceptual, and technical things represented in the graph."@en .
+
+core:Agent
+    a owl:Class ;
+    rdfs:subClassOf core:KnowledgeEntity ;
+    rdfs:label "Agent"@en ;
+    rdfs:label "행위자"@ko ;
+    rdfs:comment "An entity capable of performing, owning, or participating in an activity."@en ;
+    rdfs:comment "활동을 수행하거나 소유하거나 활동에 참여할 수 있는 개체를 나타낸다."@ko ;
+    skos:definition "A knowledge entity that acts intentionally or is discussed as the responsible actor."@en .
+
+core:Person
+    a owl:Class ;
+    rdfs:subClassOf core:Agent ;
+    owl:disjointWith core:Organization ;
+    core:code "PERSON" ;
+    core:extractable true ;
+    rdfs:label "Person"@en ;
+    rdfs:label "사람"@ko ;
+    rdfs:comment "A named person or explicitly discussed human role."@en ;
+    rdfs:comment "이름이 명시된 사람 또는 행위자로 명시적으로 논의된 인간 역할을 나타낸다."@ko ;
+    skos:definition "An individual human or a human role treated as an explicit actor in the source knowledge."@en ;
+    skos:example "Document index operator"@en .
+
+core:Organization
+    a owl:Class ;
+    rdfs:subClassOf core:Agent ;
+    core:code "ORGANIZATION" ;
+    core:extractable true ;
+    rdfs:label "Organization"@en ;
+    rdfs:label "조직"@ko ;
+    rdfs:comment "A company, team, institution, or named organization."@en ;
+    rdfs:comment "회사, 팀, 기관 또는 이름이 있는 조직을 나타낸다."@ko ;
+    skos:definition "A collective agent with a recognized identity and responsibility."@en ;
+    skos:example "Platform architecture team"@en .
+
+core:KnowledgeArtifact
+    a owl:Class ;
+    rdfs:subClassOf core:KnowledgeEntity ;
+    rdfs:label "Knowledge artifact"@en ;
+    rdfs:label "지식 산출물"@ko ;
+    rdfs:comment "An identifiable artifact that carries, records, or communicates knowledge."@en ;
+    rdfs:comment "지식을 담거나 기록하거나 전달하는 식별 가능한 산출물을 나타낸다."@ko ;
+    skos:definition "An information-bearing entity created or maintained for knowledge use."@en .
+
+core:Document
+    a owl:Class ;
+    rdfs:subClassOf core:KnowledgeArtifact ;
+    owl:disjointWith core:Person ;
+    core:code "DOCUMENT" ;
+    core:extractable true ;
+    rdfs:label "Document"@en ;
+    rdfs:label "문서"@ko ;
+    rdfs:comment "A named document, specification, policy, or knowledge artifact."@en ;
+    rdfs:comment "이름이 있는 문서, 명세, 정책 또는 기타 지식 산출물을 나타낸다."@ko ;
+    skos:definition "A versioned source artifact whose content can be registered, indexed, and cited."@en ;
+    skos:example "Software architecture decision record"@en .
+
+core:DocumentChunk
+    a owl:Class ;
+    rdfs:subClassOf
+        core:KnowledgeArtifact ,
+        [
+            a owl:Restriction ;
+            owl:onProperty core:chunkOf ;
+            owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+            owl:onClass core:Document
+        ] ;
+    core:code "DOCUMENT_CHUNK" ;
+    core:extractable true ;
+    rdfs:label "Document chunk"@en ;
+    rdfs:label "문서 청크"@ko ;
+    rdfs:comment "An ordered, traceable fragment of one document version."@en ;
+    rdfs:comment "특정 문서 버전에서 순서와 출처를 추적할 수 있도록 나눈 본문 조각을 나타낸다."@ko ;
+    skos:definition "The smallest indexed document fragment used as a retrievable and citable source unit."@en ;
+    skos:example "The first 500-token fragment of document version 3"@en .
+
+core:Concept
+    a owl:Class ;
+    rdfs:subClassOf core:KnowledgeEntity ;
+    core:code "CONCEPT" ;
+    core:extractable true ;
+    rdfs:label "Concept"@en ;
+    rdfs:label "개념"@ko ;
+    rdfs:comment "A named idea, principle, pattern, or domain term."@en ;
+    rdfs:comment "이름이 있는 아이디어, 원칙, 패턴 또는 도메인 용어를 나타낸다."@ko ;
+    skos:definition "An abstract knowledge entity used to discuss meaning rather than a concrete actor or artifact."@en ;
+    skos:example "Transactional Outbox"@en .
+
+core:Answer
+    a owl:Class ;
+    rdfs:subClassOf core:KnowledgeArtifact ;
+    rdfs:label "Knowledge answer"@en ;
+    rdfs:label "지식 답변"@ko ;
+    rdfs:comment "A generated response grounded in retrieved document and graph evidence."@en ;
+    rdfs:comment "검색된 문서 근거와 그래프 근거에 기반하여 생성한 응답을 나타낸다."@ko ;
+    skos:definition "A knowledge artifact produced in response to a question and traceable to supporting sources."@en .
+
+core:StatementEvidence
+    a owl:Class ;
+    rdfs:label "Statement evidence"@en ;
+    rdfs:label "진술 근거"@ko ;
+    rdfs:comment "Provenance that connects an asserted RDF statement to an exact source quote."@en ;
+    rdfs:comment "직접 진술된 RDF 문장을 정확한 원문 인용과 연결하는 출처 정보를 나타낸다."@ko ;
+    skos:definition "A reified provenance record proving where an asserted subject-predicate-object statement came from."@en .
+
+core:InferredStatementProvenance
+    a owl:Class ;
+    rdfs:label "Inferred statement provenance"@en ;
+    rdfs:label "추론 진술 출처"@ko ;
+    rdfs:comment "Provenance for a statement entailed by an OWL reasoner."@en ;
+    rdfs:comment "OWL 추론기가 논리적으로 도출한 문장임을 기록하는 출처 정보를 나타낸다."@ko ;
+    skos:definition "A provenance record identifying an RDF statement as an entailment rather than a direct source assertion."@en .
+
+core:GraphProjection
+    a owl:Class ;
+    rdfs:label "Graph projection"@en ;
+    rdfs:label "그래프 프로젝션"@ko ;
+    rdfs:comment "A versioned RDF projection generated from one knowledge document version."@en ;
+    rdfs:comment "하나의 지식 문서 버전으로부터 생성한 버전형 RDF 프로젝션을 나타낸다."@ko ;
+    skos:definition "The catalog record that identifies the active asserted, inferred, and provenance graphs for a document version."@en .
+
+core:hasChunk
+    a owl:ObjectProperty ;
+    owl:inverseOf core:chunkOf ;
+    rdfs:domain core:Document ;
+    rdfs:range core:DocumentChunk ;
+    core:code "HAS_CHUNK" ;
+    core:extractable true ;
+    rdfs:label "has chunk"@en ;
+    rdfs:label "청크를 가짐"@ko ;
+    rdfs:comment "Connects a document to an explicitly identified chunk."@en ;
+    rdfs:comment "문서를 그 문서에 속한 명시적으로 식별된 청크와 연결한다."@ko ;
+    skos:definition "Relates a document to one of its ordered source fragments."@en .
+
+core:chunkOf
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain core:DocumentChunk ;
+    rdfs:range core:Document ;
+    rdfs:label "chunk of"@en ;
+    rdfs:label "문서에 속한 청크"@ko ;
+    rdfs:comment "Connects a document chunk to exactly one containing document."@en ;
+    rdfs:comment "문서 청크를 그 청크를 포함하는 정확히 하나의 문서와 연결한다."@ko ;
+    skos:definition "The functional inverse of hasChunk from a fragment to its source document."@en .
+
+core:supportedBy
+    a owl:ObjectProperty ;
+    rdfs:domain [
+        a owl:Class ;
+        owl:unionOf (core:Answer core:StatementEvidence)
+    ] ;
+    rdfs:range core:DocumentChunk ;
+    core:code "SUPPORTED_BY" ;
+    core:extractable true ;
+    rdfs:label "supported by"@en ;
+    rdfs:label "근거로 뒷받침됨"@ko ;
+    rdfs:comment "Connects an answer or assertion evidence to its source chunk."@en ;
+    rdfs:comment "답변 또는 진술 근거를 이를 뒷받침하는 원문 청크와 연결한다."@ko ;
+    skos:definition "Relates a derived knowledge artifact or evidence record to the document fragment that supports it."@en .
+
+core:documentId
+    a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:label "document identifier"@en ;
+    rdfs:label "문서 식별자"@ko ;
+    rdfs:comment "Stores the stable application identifier of a source document."@en ;
+    rdfs:comment "원본 문서의 안정적인 애플리케이션 식별자를 저장한다."@ko ;
+    skos:definition "The string representation of the PostgreSQL source-of-truth document identifier."@en .
+
+core:entityId
+    a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:label "entity identifier"@en ;
+    rdfs:label "개체 식별자"@ko ;
+    rdfs:comment "Stores the stable identifier assigned to a projected knowledge entity."@en ;
+    rdfs:comment "프로젝션된 지식 개체에 부여한 안정적인 식별자를 저장한다."@ko ;
+    skos:definition "A deterministic identifier for resolving the same projected entity across RDF statements."@en .
+
+core:relationId
+    a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:label "relation identifier"@en ;
+    rdfs:label "관계 식별자"@ko ;
+    rdfs:comment "Stores the stable identifier of an asserted or inferred relationship."@en ;
+    rdfs:comment "직접 진술되거나 추론된 관계의 안정적인 식별자를 저장한다."@ko ;
+    skos:definition "A deterministic application identifier for a graph relationship statement."@en .
+
+core:ontologyVersion
+    a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:label "ontology version"@en ;
+    rdfs:label "온톨로지 버전"@ko ;
+    rdfs:comment "Records the ontology version IRI used to interpret or generate a statement."@en ;
+    rdfs:comment "문장을 해석하거나 생성할 때 사용한 온톨로지 버전 IRI를 기록한다."@ko ;
+    skos:definition "The immutable version identifier of the semantic schema governing a projection."@en .
+
+core:documentVersion
+    a owl:DatatypeProperty ;
+    rdfs:range xsd:long ;
+    rdfs:label "document version"@en ;
+    rdfs:label "문서 버전"@ko ;
+    rdfs:comment "Records which version of the source document produced an artifact or statement."@en ;
+    rdfs:comment "산출물이나 문장을 생성한 원본 문서의 버전을 기록한다."@ko ;
+    skos:definition "A monotonically increasing source document revision number."@en .
+
+core:chunkId
+    a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:label "chunk identifier"@en ;
+    rdfs:label "청크 식별자"@ko ;
+    rdfs:comment "Stores the identifier of the exact source chunk used as evidence."@en ;
+    rdfs:comment "근거로 사용한 정확한 원문 청크의 식별자를 저장한다."@ko ;
+    skos:definition "A document-version-scoped identifier for a retrievable source fragment."@en .
+
+core:chunkIndex
+    a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain core:DocumentChunk ;
+    rdfs:range xsd:nonNegativeInteger ;
+    rdfs:label "chunk index"@en ;
+    rdfs:label "청크 순번"@ko ;
+    rdfs:comment "Records the zero-based order of a chunk within its document version."@en ;
+    rdfs:comment "문서 버전 안에서 청크의 0부터 시작하는 순서를 기록한다."@ko ;
+    skos:definition "The unique non-negative ordinal of a chunk in its containing document version."@en .
+
+core:quote
+    a owl:DatatypeProperty ;
+    rdfs:domain core:StatementEvidence ;
+    rdfs:range xsd:string ;
+    rdfs:label "source quote"@en ;
+    rdfs:label "원문 인용"@ko ;
+    rdfs:comment "Stores an exact, non-invented excerpt from the supporting document chunk."@en ;
+    rdfs:comment "근거 문서 청크에서 그대로 가져온 조작되지 않은 인용문을 저장한다."@ko ;
+    skos:definition "The verbatim text span that justifies an asserted graph statement."@en .
+
+core:confidence
+    a owl:DatatypeProperty ;
+    rdfs:domain core:StatementEvidence ;
+    rdfs:range xsd:double ;
+    rdfs:label "extraction confidence"@en ;
+    rdfs:label "추출 신뢰도"@ko ;
+    rdfs:comment "Records the extraction confidence between zero and one for asserted evidence."@en ;
+    rdfs:comment "직접 진술 근거의 추출 신뢰도를 0과 1 사이 값으로 기록한다."@ko ;
+    skos:definition "A bounded model confidence score attached to a validated source assertion."@en .
+
+core:assertionKind
+    a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:label "assertion kind"@en ;
+    rdfs:label "진술 종류"@ko ;
+    rdfs:comment "Distinguishes a directly supported assertion from a reasoner-derived entailment."@en ;
+    rdfs:comment "원문이 직접 뒷받침하는 진술과 추론기가 도출한 문장을 구분한다."@ko ;
+    skos:definition "A controlled value whose supported values are ASSERTED and INFERRED."@en .
+
+core:checksum
+    a owl:DatatypeProperty ;
+    rdfs:domain core:GraphProjection ;
+    rdfs:range xsd:string ;
+    rdfs:label "ontology checksum"@en ;
+    rdfs:label "온톨로지 체크섬"@ko ;
+    rdfs:comment "Stores the content checksum of the ontology bundle used for a projection."@en ;
+    rdfs:comment "프로젝션에 사용한 온톨로지 묶음의 콘텐츠 체크섬을 저장한다."@ko ;
+    skos:definition "A SHA-256 digest used to detect semantic schema changes requiring reindexing."@en .
+
+core:active
+    a owl:DatatypeProperty ;
+    rdfs:domain core:GraphProjection ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "active projection flag"@en ;
+    rdfs:label "활성 프로젝션 여부"@ko ;
+    rdfs:comment "Indicates whether a graph projection is the current searchable version for its document."@en ;
+    rdfs:comment "그래프 프로젝션이 해당 문서의 현재 검색 가능한 버전인지 나타낸다."@ko ;
+    skos:definition "A catalog flag selecting the projection included in active union graphs."@en .
+
+core:assertedGraph
+    a owl:ObjectProperty ;
+    rdfs:domain core:GraphProjection ;
+    rdfs:label "asserted graph"@en ;
+    rdfs:label "직접 진술 그래프"@ko ;
+    rdfs:comment "Links a projection catalog entry to its named graph of validated source assertions."@en ;
+    rdfs:comment "프로젝션 카탈로그 항목을 검증된 원문 직접 진술 named graph와 연결한다."@ko ;
+    skos:definition "The named RDF graph containing only statements directly supported by document evidence."@en .
+
+core:inferredGraph
+    a owl:ObjectProperty ;
+    rdfs:domain core:GraphProjection ;
+    rdfs:label "inferred graph"@en ;
+    rdfs:label "추론 그래프"@ko ;
+    rdfs:comment "Links a projection catalog entry to its named graph of OWL entailments."@en ;
+    rdfs:comment "프로젝션 카탈로그 항목을 OWL 추론 결과 named graph와 연결한다."@ko ;
+    skos:definition "The named RDF graph containing statements derived by the configured OWL reasoner."@en .
+
+core:provenanceGraph
+    a owl:ObjectProperty ;
+    rdfs:domain core:GraphProjection ;
+    rdfs:label "provenance graph"@en ;
+    rdfs:label "출처 그래프"@ko ;
+    rdfs:comment "Links a projection catalog entry to the named graph that explains statement origins."@en ;
+    rdfs:comment "프로젝션 카탈로그 항목을 각 문장의 기원을 설명하는 named graph와 연결한다."@ko ;
+    skos:definition "The named RDF graph containing asserted evidence and inferred-statement provenance records."@en .

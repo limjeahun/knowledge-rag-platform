@@ -38,6 +38,7 @@ fun KnowledgeGraphRelationResult.toResponse() =
         targetEntityId,
         targetName,
         evidence.map { it.toResponse() },
+        assertionKind.name,
     )
 
 fun KnowledgeGraphEvidenceResult.toResponse() =

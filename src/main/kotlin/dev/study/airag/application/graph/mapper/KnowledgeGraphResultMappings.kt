@@ -9,6 +9,11 @@ import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphEvidenceView
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphNeighborhoodView
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphRelationView
 
+/**
+ * Outbound Adapter view를 프로토콜 독립적인 Application result로 복사하는 순수 변환 함수다.
+ *
+ * 관계 방향, assertion kind와 evidence를 그대로 보존하며 조회나 정책 판단을 수행하지 않는다.
+ */
 internal fun KnowledgeGraphNeighborhoodView.toResult() =
     KnowledgeGraphNeighborhoodResult(
         center = center.toResult(),
@@ -36,6 +41,7 @@ private fun KnowledgeGraphRelationView.toResult() =
         targetEntityId = targetEntityId,
         targetName = targetName,
         evidence = evidence.map { it.toResult() },
+        assertionKind = assertionKind,
     )
 
 private fun KnowledgeGraphEvidenceView.toResult() =

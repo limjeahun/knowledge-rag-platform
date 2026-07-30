@@ -48,7 +48,9 @@ class KnowledgeMcpTools(
     @McpTool(
         name = "knowledge_ask",
         title = "Ask local knowledge",
-        description = "Answer a question using the local knowledge index and include sources.",
+        description =
+            "Answer using local vector sources and asserted/inferred ontology graph facts, " +
+                "and return both evidence forms.",
         generateOutputSchema = true,
         annotations =
             McpTool.McpAnnotations(

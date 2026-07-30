@@ -1,0 +1,22 @@
+PREFIX core: <urn:airag:ontology:knowledge-core#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT DISTINCT ?entityId ?typeCode ?name ?alias
+WHERE {
+  GRAPH <urn:airag:graph:active-asserted> {
+    ?entity core:entityId ?entityId ;
+            rdf:type ?type ;
+            skos:prefLabel ?name .
+    OPTIONAL { ?entity skos:altLabel ?alias }
+  }
+  GRAPH ?ontologyGraph {
+    ?type a owl:Class ;
+          core:code ?typeCode ;
+          core:extractable true .
+  }
+  FILTER(CONTAINS(LCASE(STR(?name)), "milvus"))
+}
+ORDER BY ?name
+LIMIT 20

@@ -1,11 +1,14 @@
 package dev.study.airag.application.knowledge.service
 
 import dev.study.airag.application.graph.policy.KnowledgeGraphProjectionPolicy
+import dev.study.airag.application.graph.port.`in`.FindRelevantKnowledgeGraphFactsUseCase
 import dev.study.airag.application.graph.port.`in`.ProjectKnowledgeGraphUseCase
 import dev.study.airag.application.graph.port.out.ExtractKnowledgeGraphPort
 import dev.study.airag.application.graph.port.out.KnowledgeGraphIndexPort
+import dev.study.airag.application.graph.port.out.KnowledgeGraphProjectionRegistryPort
 import dev.study.airag.application.graph.port.out.KnowledgeOntologyPort
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphProjection
+import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphProjectionReceipt
 import dev.study.airag.application.graph.port.out.dto.KnowledgeOntology
 import dev.study.airag.application.graph.port.out.dto.OntologyEntityType
 import dev.study.airag.application.graph.service.ProjectKnowledgeGraphService
@@ -227,6 +230,7 @@ class KnowledgeApplicationServiceTests {
                     generatedSources = sources
                     "grounded answer"
                 },
+                emptyGraphFactsUseCase(),
             )
 
         val result = service.answer(AnswerKnowledgeQuestionQuery("What is RAG?", 3, 0.7))
@@ -258,6 +262,7 @@ class KnowledgeApplicationServiceTests {
                     }
                     "concise grounded answer"
                 },
+                emptyGraphFactsUseCase(),
             )
 
         val result = service.answer(AnswerKnowledgeQuestionQuery("What is RAG?", 3, 0.7))
@@ -286,6 +291,7 @@ class KnowledgeApplicationServiceTests {
                     }
                     "answer"
                 },
+                emptyGraphFactsUseCase(),
             )
 
         val result = service.answer(AnswerKnowledgeQuestionQuery("question"))
@@ -313,6 +319,7 @@ class KnowledgeApplicationServiceTests {
                     attempts += 1
                     throw expected
                 },
+                emptyGraphFactsUseCase(),
             )
 
         val actual =
@@ -337,6 +344,7 @@ class KnowledgeApplicationServiceTests {
                     attempts += 1
                     throw KnowledgeAnswerGenerationException(KnowledgeAnswerGenerationFailure.OUTPUT_TRUNCATED)
                 },
+                emptyGraphFactsUseCase(),
             )
 
         val exception =
@@ -457,7 +465,12 @@ class KnowledgeApplicationServiceTests {
     private fun queryService(
         documents: InMemoryDocumentPort = InMemoryDocumentPort(),
         index: InMemoryKnowledgeIndexPort = InMemoryKnowledgeIndexPort(),
-    ) = QueryKnowledgeService(documents, index, GenerateKnowledgeAnswerPort { _, _ -> "answer" })
+    ) = QueryKnowledgeService(
+        documents,
+        index,
+        GenerateKnowledgeAnswerPort { _, _ -> "answer" },
+        emptyGraphFactsUseCase(),
+    )
 
     private fun indexingFixture(
         status: DocumentIndexingStatus = DocumentIndexingStatus.PENDING,
@@ -562,7 +575,7 @@ class KnowledgeApplicationServiceTests {
             extractKnowledgeGraphPort = ExtractKnowledgeGraphPort { error("비활성 그래프는 추출기를 호출하지 않아야 합니다.") },
             knowledgeGraphIndexPort =
                 object : KnowledgeGraphIndexPort {
-                    override fun replace(projection: KnowledgeGraphProjection) {
+                    override fun replace(projection: KnowledgeGraphProjection): KnowledgeGraphProjectionReceipt {
                         error("비활성 그래프는 저장하지 않아야 합니다.")
                     }
 
@@ -571,6 +584,7 @@ class KnowledgeApplicationServiceTests {
             validator = KnowledgeGraphExtractionValidator(),
             policy = KnowledgeGraphProjectionPolicy(false, 1, 0.7, 10, 10),
             clock = clock,
+            projectionRegistryPort = emptyProjectionRegistry(),
         )
 
     private fun failingGraphProjectionService() =
@@ -588,13 +602,34 @@ class KnowledgeApplicationServiceTests {
             extractKnowledgeGraphPort = ExtractKnowledgeGraphPort { error("graph provider unavailable") },
             knowledgeGraphIndexPort =
                 object : KnowledgeGraphIndexPort {
-                    override fun replace(projection: KnowledgeGraphProjection) = Unit
+                    override fun replace(projection: KnowledgeGraphProjection) = projectionReceipt(projection)
 
                     override fun remove(documentId: DocumentId) = Unit
                 },
             validator = KnowledgeGraphExtractionValidator(),
             policy = KnowledgeGraphProjectionPolicy(true, 1, 0.7, 10, 10),
             clock = clock,
+            projectionRegistryPort = emptyProjectionRegistry(),
+        )
+
+    private fun emptyGraphFactsUseCase() = FindRelevantKnowledgeGraphFactsUseCase { emptyList() }
+
+    private fun emptyProjectionRegistry() =
+        object : KnowledgeGraphProjectionRegistryPort {
+            override fun activate(receipt: KnowledgeGraphProjectionReceipt) = Unit
+
+            override fun retire(documentId: DocumentId) = Unit
+        }
+
+    private fun projectionReceipt(projection: KnowledgeGraphProjection) =
+        KnowledgeGraphProjectionReceipt(
+            documentId = projection.documentId,
+            documentVersion = projection.documentVersion,
+            ontologyIri = "urn:test:ontology",
+            ontologyVersion = projection.ontologyVersion,
+            ontologyChecksum = "a".repeat(64),
+            graphNames = emptyList(),
+            projectedAt = projection.projectedAt,
         )
 
     private data class IndexingFixture(

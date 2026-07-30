@@ -1,12 +1,15 @@
 package dev.study.airag.application.graph.service
 
+import dev.study.airag.application.graph.dto.query.FindRelevantKnowledgeGraphFactsQuery
 import dev.study.airag.application.graph.dto.query.GetKnowledgeEntityNeighborhoodQuery
 import dev.study.airag.application.graph.dto.query.SearchKnowledgeGraphQuery
 import dev.study.airag.application.graph.exception.InvalidKnowledgeGraphExtractionException
 import dev.study.airag.application.graph.exception.KnowledgeGraphEntityNotFoundException
 import dev.study.airag.application.graph.policy.KnowledgeGraphProjectionPolicy
+import dev.study.airag.application.graph.policy.KnowledgeGraphRetrievalPolicy
 import dev.study.airag.application.graph.port.out.ExtractKnowledgeGraphPort
 import dev.study.airag.application.graph.port.out.KnowledgeGraphIndexPort
+import dev.study.airag.application.graph.port.out.KnowledgeGraphProjectionRegistryPort
 import dev.study.airag.application.graph.port.out.KnowledgeGraphQueryPort
 import dev.study.airag.application.graph.port.out.KnowledgeOntologyPort
 import dev.study.airag.application.graph.port.out.dto.ExtractedGraphEntity
@@ -15,8 +18,10 @@ import dev.study.airag.application.graph.port.out.dto.ExtractedGraphRelation
 import dev.study.airag.application.graph.port.out.dto.ExtractedKnowledgeGraph
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphEntityView
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphEvidenceView
+import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphFactView
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphNeighborhoodView
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphProjection
+import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphProjectionReceipt
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphRelationView
 import dev.study.airag.application.graph.port.out.dto.KnowledgeOntology
 import dev.study.airag.application.graph.port.out.dto.OntologyEntityType
@@ -159,6 +164,7 @@ class KnowledgeGraphApplicationServiceTests {
                 KnowledgeGraphExtractionValidator(),
                 policy(chunksPerRequest = 1),
                 clock,
+                recordingRegistry(),
             )
 
         service.project(document, listOf(chunk, chunk.copy(chunkId = "${document.id}-v1-c1")))
@@ -179,6 +185,7 @@ class KnowledgeGraphApplicationServiceTests {
                 KnowledgeGraphExtractionValidator(),
                 policy(enabled = false),
                 clock,
+                recordingRegistry(),
             )
 
         service.project(document, listOf(chunk))
@@ -222,8 +229,17 @@ class KnowledgeGraphApplicationServiceTests {
                                 ),
                             ),
                     )
+
+                override fun findRelevantFacts(
+                    query: FindRelevantKnowledgeGraphFactsQuery,
+                ): List<KnowledgeGraphFactView> = emptyList()
             }
-        val service = QueryKnowledgeGraphService(KnowledgeOntologyPort { ontology }, store)
+        val service =
+            QueryKnowledgeGraphService(
+                KnowledgeOntologyPort { ontology },
+                store,
+                KnowledgeGraphRetrievalPolicy(enabled = false, maxFacts = 20),
+            )
 
         val search = service.search(SearchKnowledgeGraphQuery(" mil ", " TECHNOLOGY ", 10))
         val neighborhood =
@@ -250,8 +266,17 @@ class KnowledgeGraphApplicationServiceTests {
                 override fun findNeighborhood(
                     query: GetKnowledgeEntityNeighborhoodQuery,
                 ): KnowledgeGraphNeighborhoodView? = null
+
+                override fun findRelevantFacts(
+                    query: FindRelevantKnowledgeGraphFactsQuery,
+                ): List<KnowledgeGraphFactView> = emptyList()
             }
-        val service = QueryKnowledgeGraphService(KnowledgeOntologyPort { ontology }, store)
+        val service =
+            QueryKnowledgeGraphService(
+                KnowledgeOntologyPort { ontology },
+                store,
+                KnowledgeGraphRetrievalPolicy(enabled = false, maxFacts = 20),
+            )
 
         assertFailsWith<KnowledgeGraphEntityNotFoundException> {
             service.getNeighborhood(GetKnowledgeEntityNeighborhoodQuery(UUID.randomUUID().toString()))
@@ -320,10 +345,29 @@ class KnowledgeGraphApplicationServiceTests {
 
     private fun recordingIndex(stored: MutableList<KnowledgeGraphProjection>) =
         object : KnowledgeGraphIndexPort {
-            override fun replace(projection: KnowledgeGraphProjection) {
+            override fun replace(projection: KnowledgeGraphProjection): KnowledgeGraphProjectionReceipt {
                 stored += projection
+                return receipt(projection)
             }
 
             override fun remove(documentId: DocumentId) = Unit
         }
+
+    private fun recordingRegistry() =
+        object : KnowledgeGraphProjectionRegistryPort {
+            override fun activate(receipt: KnowledgeGraphProjectionReceipt) = Unit
+
+            override fun retire(documentId: DocumentId) = Unit
+        }
+
+    private fun receipt(projection: KnowledgeGraphProjection) =
+        KnowledgeGraphProjectionReceipt(
+            documentId = projection.documentId,
+            documentVersion = projection.documentVersion,
+            ontologyIri = "urn:test:ontology",
+            ontologyVersion = projection.ontologyVersion,
+            ontologyChecksum = "a".repeat(64),
+            graphNames = emptyList(),
+            projectedAt = projection.projectedAt,
+        )
 }

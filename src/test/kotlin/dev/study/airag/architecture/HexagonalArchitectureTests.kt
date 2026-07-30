@@ -67,19 +67,37 @@ class HexagonalArchitectureTests {
     }
 
     @Test
-    fun `knowledge graph persistence separates index and query adapters`() {
+    fun `knowledge graph storage adapters use the RDF boundary`() {
         val violations =
             classes
                 .filter {
-                    it.packageName.contains(".adapter.out.persistence.postgres.graph.") &&
-                        it.isAssignableTo(KnowledgeGraphIndexPort::class.java) &&
-                        it.isAssignableTo(KnowledgeGraphQueryPort::class.java)
+                    it.packageName.contains(".adapter.out.") &&
+                        (
+                            it.isAssignableTo(KnowledgeGraphIndexPort::class.java) ||
+                                it.isAssignableTo(KnowledgeGraphQueryPort::class.java)
+                        ) &&
+                        !it.packageName.contains(".adapter.out.graph.rdf")
                 }.map { it.name }
 
         assertTrue(
             violations.isEmpty(),
-            "하나의 PostgreSQL Graph Adapter가 쓰기와 조회 Port를 함께 구현할 수 없습니다:\n" +
+            "지식 그래프 저장·조회 Port는 RDF Adapter에서만 구현해야 합니다:\n" +
                 violations.joinToString("\n"),
+        )
+    }
+
+    @Test
+    fun `ontology adapters do not reintroduce a JSON implementation`() {
+        val violations =
+            classes
+                .filter {
+                    it.packageName.contains(".adapter.out.ontology") &&
+                        it.simpleName.contains("Json", ignoreCase = true)
+                }.map { it.name }
+
+        assertTrue(
+            violations.isEmpty(),
+            "온톨로지 Adapter는 OWL 구현만 허용합니다:\n${violations.joinToString("\n")}",
         )
     }
 

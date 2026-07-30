@@ -110,7 +110,15 @@ app:
     graph:
       # Disabled by default so existing Milvus Vector RAG behavior is unchanged until explicitly enabled.
       enabled: "${KNOWLEDGE_GRAPH_ENABLED:false}"
-      ontology-location: "${KNOWLEDGE_GRAPH_ONTOLOGY:classpath:ontology/knowledge-ontology-v1.json}"
+      ontology-locations:
+        - "${KNOWLEDGE_GRAPH_CORE_ONTOLOGY:classpath:ontology/core/knowledge-core-v1.ttl}"
+        - "${KNOWLEDGE_GRAPH_DOMAIN_ONTOLOGY:classpath:ontology/domain/software-architecture-v1.ttl}"
+      root-ontology-iri: "${KNOWLEDGE_GRAPH_ROOT_ONTOLOGY_IRI:urn:airag:ontology:software-architecture}"
+      shapes-location: "${KNOWLEDGE_GRAPH_SHAPES:classpath:ontology/shapes/software-architecture-shapes-v1.ttl}"
+      fuseki-dataset-url: "${FUSEKI_DATASET_URL:http://localhost:3030/knowledge}"
+      hybrid-retrieval-enabled: "${KNOWLEDGE_GRAPH_HYBRID_RETRIEVAL_ENABLED:true}"
+      max-graph-facts: "${KNOWLEDGE_GRAPH_MAX_FACTS:20}"
+      max-inferred-statements: "${KNOWLEDGE_GRAPH_MAX_INFERRED_STATEMENTS:2000}"
       extraction-model: "${KNOWLEDGE_GRAPH_MODEL:qwen3.6:27b}"
       chunks-per-request: "${KNOWLEDGE_GRAPH_CHUNKS_PER_REQUEST:4}"
       minimum-confidence: "${KNOWLEDGE_GRAPH_MIN_CONFIDENCE:0.7}"

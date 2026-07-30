@@ -26,11 +26,11 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/documents")
 class KnowledgeDocumentController(
-    private val registerUseCase: RegisterKnowledgeDocumentUseCase,
-    private val getUseCase: GetKnowledgeDocumentUseCase,
-    private val listUseCase: ListKnowledgeDocumentsUseCase,
-    private val retryUseCase: RetryKnowledgeDocumentIndexingUseCase,
-    private val deleteUseCase: DeleteKnowledgeDocumentUseCase,
+    private val registerUseCase : RegisterKnowledgeDocumentUseCase,
+    private val getUseCase      : GetKnowledgeDocumentUseCase,
+    private val listUseCase     : ListKnowledgeDocumentsUseCase,
+    private val retryUseCase    : RetryKnowledgeDocumentIndexingUseCase,
+    private val deleteUseCase   : DeleteKnowledgeDocumentUseCase,
 ) : KnowledgeDocumentSpec {
     @PostMapping
     @ResponseStatus(HttpStatus.ACCEPTED)

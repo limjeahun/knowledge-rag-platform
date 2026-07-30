@@ -1,0 +1,24 @@
+PREFIX core: <urn:airag:ontology:knowledge-core#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT ?sourceName ?predicate ?targetName ?documentId ?documentVersion ?chunkId ?quote ?confidence
+WHERE {
+  GRAPH <urn:airag:graph:active-asserted> {
+    ?source skos:prefLabel ?sourceName .
+    ?target skos:prefLabel ?targetName .
+  }
+  GRAPH <urn:airag:graph:active-provenance> {
+    ?assertion a core:StatementEvidence ;
+               rdf:subject ?source ;
+               rdf:predicate ?predicate ;
+               rdf:object ?target ;
+               core:documentId ?documentId ;
+               core:documentVersion ?documentVersion ;
+               core:chunkId ?chunkId ;
+               core:quote ?quote ;
+               core:confidence ?confidence .
+  }
+}
+ORDER BY DESC(?confidence)
+LIMIT 100

@@ -1,6 +1,7 @@
 package dev.study.airag.application.knowledge.service
 
 import dev.study.airag.application.graph.port.out.KnowledgeGraphIndexPort
+import dev.study.airag.application.graph.port.out.KnowledgeGraphProjectionRegistryPort
 import dev.study.airag.application.knowledge.dto.result.KnowledgeDocumentEventDeliveryFailure
 import dev.study.airag.application.knowledge.dto.result.KnowledgeDocumentEventDeliveryResult
 import dev.study.airag.application.knowledge.outbox.OutboxEnvelope
@@ -14,7 +15,13 @@ import dev.study.airag.domain.event.KnowledgeDocumentDeleted
 import org.springframework.stereotype.Service
 import java.time.Clock
 
-/** 저장된 문서 이벤트를 유형에 맞는 외부 능력으로 전달하고 이벤트별 완료 여부를 기록한다. */
+/**
+ * 저장된 문서 이벤트를 유형에 맞는 외부 능력으로 전달하고 이벤트별 완료 여부를 기록한다.
+ *
+ * 삭제 이벤트는 PostgreSQL 원문 상태가 이미 확정된 뒤 Milvus와 Fuseki 파생 projection 및
+ * projection registry를 정리한다. 세 호출 중 하나라도 실패하면 Outbox를 완료 처리하지 않아
+ * 멱등 remove/retire 경로로 재시도한다.
+ */
 @Service
 class DeliverPendingKnowledgeDocumentEventsService(
     private val outboxEventPort: OutboxEventPort,
@@ -22,6 +29,7 @@ class DeliverPendingKnowledgeDocumentEventsService(
     private val knowledgeIndexPort: KnowledgeIndexPort,
     private val knowledgeGraphIndexPort: KnowledgeGraphIndexPort,
     private val clock: Clock,
+    private val knowledgeGraphProjectionRegistryPort: KnowledgeGraphProjectionRegistryPort,
 ) : DeliverPendingKnowledgeDocumentEventsUseCase {
     override fun deliverPending(limit: Int): KnowledgeDocumentEventDeliveryResult {
         require(limit > 0) { "Outbox 전달 건수 제한은 0보다 커야 합니다." }
@@ -63,6 +71,7 @@ class DeliverPendingKnowledgeDocumentEventsService(
                  */
                 knowledgeIndexPort.remove(event.documentId)
                 knowledgeGraphIndexPort.remove(event.documentId)
+                knowledgeGraphProjectionRegistryPort.retire(event.documentId)
             }
         }
     }

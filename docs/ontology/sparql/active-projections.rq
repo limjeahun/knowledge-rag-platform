@@ -1,0 +1,16 @@
+PREFIX core: <urn:airag:ontology:knowledge-core#>
+
+SELECT ?documentId ?documentVersion ?ontologyVersion ?asserted ?inferred ?provenance
+WHERE {
+  GRAPH <urn:airag:graph:projection-catalog> {
+    ?projection a core:GraphProjection ;
+                core:documentId ?documentId ;
+                core:documentVersion ?documentVersion ;
+                core:ontologyVersion ?ontologyVersion ;
+                core:assertedGraph ?asserted ;
+                core:inferredGraph ?inferred ;
+                core:provenanceGraph ?provenance ;
+                core:active true .
+  }
+}
+ORDER BY ?documentId

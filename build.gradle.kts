@@ -23,8 +23,11 @@ repositories {
 }
 
 extra["springAiVersion"] = "2.0.0"
+extra["jenaVersion"] = "6.1.0"
+extra["hermitVersion"] = "1.4.5.519"
 
 dependencies {
+    implementation(platform("org.apache.jena:jena-bom:${property("jenaVersion")}"))
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
@@ -39,6 +42,10 @@ dependencies {
     implementation("org.springframework.ai:spring-ai-starter-vector-store-milvus")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
     implementation("tools.jackson.module:jackson-module-kotlin")
+    implementation("org.apache.jena:jena-arq")
+    implementation("org.apache.jena:jena-rdfconnection")
+    implementation("org.apache.jena:jena-shacl")
+    implementation("net.sourceforge.owlapi:org.semanticweb.hermit:${property("hermitVersion")}")
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("org.flywaydb:flyway-database-postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
@@ -50,6 +57,7 @@ dependencies {
     testImplementation("com.tngtech.archunit:archunit-junit5:1.4.1")
     testImplementation("org.springframework.boot:spring-boot-starter-kafka-test")
     testImplementation("org.testcontainers:testcontainers-postgresql")
+    testImplementation("org.apache.jena:jena-fuseki-main")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

@@ -4,13 +4,20 @@ import dev.study.airag.application.knowledge.dto.result.KnowledgeSearchHit
 import dev.study.airag.application.knowledge.exception.KnowledgeAnswerGenerationException
 import dev.study.airag.application.knowledge.exception.KnowledgeAnswerGenerationFailure
 import dev.study.airag.application.knowledge.port.out.GenerateKnowledgeAnswerPort
+import dev.study.airag.application.knowledge.port.out.dto.KnowledgeAnswerGenerationRequest
 import org.slf4j.LoggerFactory
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.model.ChatModel
 import org.springframework.ai.chat.model.ChatResponse
 import org.springframework.stereotype.Component
 
-/** 검색된 문서 근거 밖의 내용을 사실처럼 답하지 않도록 제한해 답변을 생성한다. */
+/**
+ * 검색된 문서·그래프 근거 밖의 내용을 사실처럼 답하지 않도록 제한해 답변을 생성한다.
+ *
+ * 문서 source가 없고 graph fact만 있으면 사실을 임시 context 항목으로 변환한다. prompt에는
+ * asserted/inferred 표시를 유지하지만 내부 document/chunk 식별자는 자연어 답변에 노출하지
+ * 않는다. provider 오류와 출력 길이 초과는 Application이 구분해 재시도할 수 있도록 번역한다.
+ */
 @Component
 class OllamaKnowledgeAnswerAdapter(
     chatModel: ChatModel,
@@ -38,7 +45,27 @@ class OllamaKnowledgeAnswerAdapter(
     override fun generate(
         question: String,
         sources: List<KnowledgeSearchHit>,
-    ): String {
+    ): String = generate(KnowledgeAnswerGenerationRequest(question, sources, emptyList()))
+
+    /** 동일한 검색 결과를 context와 응답 근거에 재사용하는 Hybrid GraphRAG 모델 호출이다. */
+    override fun generate(request: KnowledgeAnswerGenerationRequest): String {
+        val sources =
+            request.sources.ifEmpty {
+                request.graphFacts.mapIndexed { index, fact ->
+                    KnowledgeSearchHit(
+                        chunkId = "graph-fact-$index",
+                        documentId = "ontology-graph",
+                        documentVersion = 1,
+                        chunkIndex = index,
+                        title = "Ontology graph",
+                        content =
+                            "[${fact.assertionKind}] ${fact.sourceName} --${fact.type}--> ${fact.targetName}",
+                        score = null,
+                        metadata = emptyMap(),
+                    )
+                }
+            }
+        val question = request.question
         if (sources.isEmpty()) return "저장된 지식에서 답변의 근거를 찾지 못했습니다."
         val context =
             sources.joinToString("\n\n") {
@@ -47,7 +74,15 @@ class OllamaKnowledgeAnswerAdapter(
                 Content:
                 ${it.content}
                 """.trimIndent()
-            }
+            } +
+                request.graphFacts
+                    .takeIf { it.isNotEmpty() }
+                    ?.joinToString(
+                        separator = "\n",
+                        prefix = "\n\nOntology graph facts:\n",
+                    ) { fact ->
+                        "- [${fact.assertionKind}] ${fact.sourceName} --${fact.type}--> ${fact.targetName}"
+                    }.orEmpty()
         return try {
             val response =
                 chatClient

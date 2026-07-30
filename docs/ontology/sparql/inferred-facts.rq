@@ -1,0 +1,21 @@
+PREFIX core: <urn:airag:ontology:knowledge-core#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT DISTINCT ?sourceName ?relationCode ?targetName
+WHERE {
+  GRAPH <urn:airag:graph:active-inferred> {
+    ?source ?relation ?target .
+  }
+  GRAPH <urn:airag:graph:active-asserted> {
+    ?source skos:prefLabel ?sourceName .
+    ?target skos:prefLabel ?targetName .
+  }
+  GRAPH ?ontologyGraph {
+    ?relation a owl:ObjectProperty ;
+              core:code ?relationCode ;
+              core:extractable true .
+  }
+}
+ORDER BY ?sourceName ?relationCode ?targetName
+LIMIT 100

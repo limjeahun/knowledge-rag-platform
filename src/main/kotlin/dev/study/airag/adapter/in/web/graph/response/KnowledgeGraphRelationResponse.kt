@@ -13,4 +13,5 @@ data class KnowledgeGraphRelationResponse(
     val targetEntityId: String,
     val targetName: String,
     val evidence: List<KnowledgeGraphEvidenceResponse>,
+    val assertionKind: String,
 )

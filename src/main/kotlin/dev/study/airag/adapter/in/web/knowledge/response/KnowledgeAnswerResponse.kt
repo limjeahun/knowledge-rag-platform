@@ -10,4 +10,5 @@ data class KnowledgeAnswerResponse(
     val answer: String,
     @field:Schema(description = "답변 생성에 실제 사용한 문서 근거")
     val sources: List<KnowledgeSearchHitResponse>,
+    val graphFacts: List<KnowledgeAnswerGraphFactResponse>,
 )

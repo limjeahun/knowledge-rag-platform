@@ -53,7 +53,10 @@ interface KnowledgeRetrievalSpec {
         similarityThreshold: Double,
     ): List<KnowledgeSearchHitResponse>
 
-    @Operation(summary = "지식 기반 질문", description = "검색된 지식 근거를 사용해 답변하고 실제 사용한 출처를 반환한다.")
+    @Operation(
+        summary = "지식 기반 질문",
+        description = "검색된 문서 근거와 OWL 지식 그래프 사실을 사용해 답변하고 실제 사용한 근거를 반환한다.",
+    )
     @ApiResponses(
         value =
             [
