@@ -16,9 +16,16 @@ interface KnowledgeGraphIndexPort {
      *
      * document-scoped named graph를 교체하며, 활성 union graph는 다른 문서의 projection을
      * 보존한 상태로 다시 계산해야 한다.
+     *
+     * @param projection 검증 완료된 문서 버전 전체 그래프
+     * @return 저장된 graph 위치와 ontology 식별 정보를 담은 registry receipt
      */
     fun replace(projection: KnowledgeGraphProjection): KnowledgeGraphProjectionReceipt
 
-    /** 삭제된 문서가 제공하던 evidence와 그 결과 생긴 고아 그래프 요소를 제거한다. */
+    /**
+     * 삭제된 문서가 제공하던 evidence와 활성 graph pointer를 제거한다.
+     *
+     * @param documentId 제거할 원본 문서 식별자
+     */
     fun remove(documentId: DocumentId)
 }

@@ -24,7 +24,16 @@ class PostgresKnowledgeGraphProjectionRegistryAdapter(
     private val objectMapper: ObjectMapper,
     private val clock: Clock,
 ) : KnowledgeGraphProjectionRegistryPort {
-    /** Fuseki 저장이 성공한 receipt를 현재 문서의 활성 projection 이력으로 확정한다. */
+    /**
+     * Fuseki 저장이 성공한 receipt를 현재 문서의 유일한 활성 projection 이력으로 확정한다.
+     *
+     * ontology version을 먼저 upsert하고 기존 ACTIVE projection을 RETIRED로 바꾼 뒤 flush한다.
+     * 이는 문서당 ACTIVE 한 건을 강제하는 부분 unique index와 새 행의 활성화가 충돌하지 않게
+     * 한다. run ID는 문서·버전·ontology·backend로 결정되므로 동일 요청 재처리는 기존 행을
+     * 다시 활성화하는 멱등 동작이다.
+     *
+     * @param receipt 이미 commit된 Fuseki graph와 ontology 식별 정보
+     */
     @Transactional
     override fun activate(receipt: KnowledgeGraphProjectionReceipt) {
         registerOntology(receipt)
@@ -56,12 +65,28 @@ class PostgresKnowledgeGraphProjectionRegistryAdapter(
         projectionRepository.save(projection)
     }
 
-    /** 삭제된 문서의 현재 ACTIVE projection을 이력 보존 상태인 RETIRED로 전환한다. */
+    /**
+     * 삭제된 문서의 현재 ACTIVE projection을 현재 시각 기준 RETIRED로 전환한다.
+     *
+     * RDF 삭제는 [KnowledgeGraphIndexPort] 구현의 책임이며 이 메서드는 감사 이력만 변경한다.
+     * 활성 행이 없으면 성공적인 no-op이다.
+     *
+     * @param documentId 폐기할 원본 문서의 Domain 식별자
+     */
     @Transactional
     override fun retire(documentId: DocumentId) {
         retireActive(documentId, clock.instant())
     }
 
+    /**
+     * receipt의 OWL 배포 정보를 version IRI 기준으로 등록하거나 최신 checksum으로 갱신한다.
+     *
+     * RDF 본문은 저장하지 않고 ontology IRI, version IRI, 전체 checksum과 format만 보존한다.
+     * 같은 version IRI에서 checksum이 달라진 경우에도 현재 구현은 값을 갱신하므로 운영
+     * 배포 규칙에서 의미 변경 시 version IRI를 올려야 한다.
+     *
+     * @param receipt Fuseki projection이 실제 사용한 ontology 정보
+     */
     private fun registerOntology(receipt: KnowledgeGraphProjectionReceipt) {
         val ontology =
             ontologyRepository.findById(receipt.ontologyVersion).orElse(null)
@@ -79,6 +104,15 @@ class PostgresKnowledgeGraphProjectionRegistryAdapter(
         ontologyRepository.save(ontology)
     }
 
+    /**
+     * 한 문서에 현재 ACTIVE로 기록된 모든 projection을 지정 시각에 RETIRED로 바꾼다.
+     *
+     * 정상 스키마에서는 최대 한 건이지만 손상이나 이전 데이터가 있어도 모두 정리한다.
+     * 호출자가 새 ACTIVE를 저장하려면 unique index 충돌 방지를 위해 이후 flush해야 한다.
+     *
+     * @param documentId 대상 문서 식별자
+     * @param retiredAt 활성 상태를 종료한 업무 시각
+     */
     private fun retireActive(
         documentId: DocumentId,
         retiredAt: java.time.Instant,
@@ -90,6 +124,7 @@ class PostgresKnowledgeGraphProjectionRegistryAdapter(
         }
     }
 
+    /** projection 자연 키를 재시도와 무관하게 동일한 PostgreSQL UUID로 변환한다. */
     private fun stableUuid(value: String): UUID = UUID.nameUUIDFromBytes(value.toByteArray(StandardCharsets.UTF_8))
 
     private companion object {

@@ -13,12 +13,24 @@ import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphNeighborhood
  * 구현체는 asserted/inferred 구분과 provenance를 보존하되 Jena·SPARQL 타입을 반환해서는 안 된다.
  */
 interface KnowledgeGraphQueryPort {
-    /** 정규화된 이름과 선택적 ontology code에 맞는 asserted 개체를 찾는다. */
+    /**
+     * 정규화된 이름과 선택적 ontology code에 맞는 asserted 개체를 찾는다.
+     *
+     * @return 원문 evidence가 포함된 개체 view, 결과가 없으면 빈 목록
+     */
     fun searchEntities(query: SearchKnowledgeGraphQuery): List<KnowledgeGraphEntityView>
 
-    /** 중심 개체가 없으면 `null`, 있으면 depth/limit이 적용된 이웃 view를 반환한다. */
+    /**
+     * 중심 개체 기준으로 depth/limit이 적용된 방향성 이웃을 조회한다.
+     *
+     * @return 중심 개체가 없으면 `null`, 있으면 asserted/inferred 관계가 포함된 이웃 view
+     */
     fun findNeighborhood(query: GetKnowledgeEntityNeighborhoodQuery): KnowledgeGraphNeighborhoodView?
 
-    /** Hybrid GraphRAG context에 사용할 방향성 asserted/inferred 사실을 반환한다. */
+    /**
+     * Hybrid GraphRAG context에 사용할 방향성 asserted/inferred 사실을 반환한다.
+     *
+     * inferred 사실에는 존재하지 않는 문서 quote를 합성해서는 안 된다.
+     */
     fun findRelevantFacts(query: FindRelevantKnowledgeGraphFactsQuery): List<KnowledgeGraphFactView>
 }

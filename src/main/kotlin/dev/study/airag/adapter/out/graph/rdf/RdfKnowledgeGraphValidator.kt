@@ -18,6 +18,16 @@ import org.springframework.stereotype.Component
 class RdfKnowledgeGraphValidator(
     private val catalog: OwlOntologyCatalog,
 ) {
+    /**
+     * asserted와 provenance RDF가 배포된 SHACL 입력 계약을 모두 만족하는지 검사한다.
+     *
+     * schema model을 데이터와 union하여 `sh:class`가 OWL class 선언을 확인할 수 있게 한다.
+     * validation은 전달된 모델을 수정하지 않으며 conform하지 않는 report의 모든 entry를
+     * 색인 실패 예외에 포함한다. inferred 모델은 이 단계 이후에 생성되므로 검사 대상이 아니다.
+     *
+     * @param models 직접 진술 triple과 그 statement-level provenance
+     * @throws InvalidKnowledgeGraphExtractionException 하나 이상의 SHACL constraint를 위반한 경우
+     */
     fun validate(models: RdfProjectionModels) {
         val snapshot = catalog.load()
         val data =

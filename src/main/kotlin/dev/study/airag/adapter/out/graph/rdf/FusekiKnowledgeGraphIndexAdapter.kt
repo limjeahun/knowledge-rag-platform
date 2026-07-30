@@ -28,7 +28,14 @@ class FusekiKnowledgeGraphIndexAdapter(
     /**
      * 같은 문서의 이전 graph를 새 버전으로 교체하고 registry 저장에 필요한 receipt를 반환한다.
      *
-     * SHACL 또는 OWL 일관성 검사가 실패하면 Fuseki transaction을 시작하기 전에 중단한다.
+     * RDF 매핑, SHACL 검증과 OWL 추론은 원격 쓰기 transaction 전에 완료한다. 이 단계가
+     * 실패하면 Fuseki는 변경되지 않는다. 쓰기 transaction 안에서는 schema, shapes,
+     * asserted, inferred, provenance와 catalog pointer를 함께 교체하고 활성 union을 재구성한다.
+     *
+     * @param projection Application 검증을 통과한 현재 문서 버전의 전체 그래프
+     * @return PostgreSQL projection registry에 기록할 ontology 및 graph 식별 정보
+     * @throws InvalidKnowledgeGraphExtractionException RDF가 SHACL 계약을 위반한 경우
+     * @throws IllegalArgumentException OWL 일관성 또는 추론 statement 상한을 위반한 경우
      */
     override fun replace(projection: KnowledgeGraphProjection): KnowledgeGraphProjectionReceipt {
         val snapshot = ontologyCatalog.load()
@@ -64,7 +71,14 @@ class FusekiKnowledgeGraphIndexAdapter(
         )
     }
 
-    /** 문서 전용 graph와 catalog pointer를 제거한 뒤 활성 union graph를 다시 물질화한다. */
+    /**
+     * 문서 전용 graph와 catalog pointer를 같은 쓰기 transaction에서 제거한다.
+     *
+     * 삭제 후 모든 활성 union graph를 catalog 기준으로 다시 만들어 제거된 문서의 triple이
+     * 조회 결과에 남지 않게 한다. ontology와 shapes graph는 다른 문서가 공유할 수 있어 지우지 않는다.
+     *
+     * @param documentId 제거할 원본 지식 문서의 Domain 식별자
+     */
     override fun remove(documentId: DocumentId) {
         gateway.write { connection ->
             findDocumentGraphs(connection, documentId).forEach(connection::delete)
@@ -83,6 +97,16 @@ class FusekiKnowledgeGraphIndexAdapter(
         }
     }
 
+    /**
+     * projection catalog에서 한 문서가 현재 가리키는 문서 전용 graph IRI를 조회한다.
+     *
+     * catalog entry가 없으면 빈 Set을 반환하며 중복 IRI는 insertion-order Set에서 제거한다.
+     * 호출자가 제공한 connection의 현재 transaction을 그대로 사용한다.
+     *
+     * @param connection 열린 Fuseki READ 또는 WRITE transaction
+     * @param documentId 조회할 문서 식별자
+     * @return asserted, inferred, provenance graph IRI의 중복 없는 집합
+     */
     private fun findDocumentGraphs(
         connection: org.apache.jena.rdfconnection.RDFConnection,
         documentId: DocumentId,
@@ -108,6 +132,17 @@ class FusekiKnowledgeGraphIndexAdapter(
         return graphs
     }
 
+    /**
+     * 한 문서의 기존 catalog statement를 지우고 새 활성 pointer를 삽입한다.
+     *
+     * DELETE와 INSERT는 호출자의 동일 WRITE transaction에서 실행된다. catalog는 실제 triple을
+     * 복제하지 않고 문서 버전·ontology checksum과 세 문서 graph의 위치만 소유한다.
+     *
+     * @param connection 열린 Fuseki WRITE transaction
+     * @param projection 현재 문서 ID, 버전과 ontology version
+     * @param names 새로 저장한 named graph IRI
+     * @param checksum TBox와 SHACL shapes의 전체 SHA-256
+     */
     private fun replaceCatalogEntry(
         connection: org.apache.jena.rdfconnection.RDFConnection,
         projection: KnowledgeGraphProjection,
@@ -145,6 +180,10 @@ class FusekiKnowledgeGraphIndexAdapter(
      * catalog에서 `active=true`인 문서 graph만 각 active union graph에 복사한다.
      *
      * 조회 Adapter가 문서별 graph 목록을 매번 조합하지 않게 하는 read-optimized projection이다.
+     * 각 대상 graph를 먼저 비우고 catalog가 참조하는 source graph를 다시 복사하므로 반드시
+     * 문서 graph 및 catalog 갱신과 같은 WRITE transaction에서 호출해야 한다.
+     *
+     * @param connection 문서 graph 변경을 포함한 현재 Fuseki WRITE transaction
      */
     private fun rebuildActiveGraphs(connection: org.apache.jena.rdfconnection.RDFConnection) {
         listOf(
@@ -171,6 +210,15 @@ class FusekiKnowledgeGraphIndexAdapter(
         }
     }
 
+    /**
+     * 외부 값을 SPARQL string literal lexical form으로 안전하게 이스케이프한다.
+     *
+     * backslash, quote와 줄바꿈을 처리하며 IRI 위치에는 사용하지 않는다. 문서 ID도 문자열
+     * literal로 비교하여 SPARQL 구문 구조를 사용자 값이 바꾸지 못하게 한다.
+     *
+     * @param value literal에 넣을 원본 문자열
+     * @return 양쪽 큰따옴표를 포함한 SPARQL 문자열 literal
+     */
     private fun sparqlString(value: String): String =
         "\"" +
             value

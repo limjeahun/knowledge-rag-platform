@@ -15,7 +15,15 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 @EnableConfigurationProperties(KnowledgeGraphProperties::class)
 class KnowledgeGraphConfig {
-    /** Spring configuration 값을 프레임워크 비의존 애플리케이션 정책으로 변환한다. */
+    /**
+     * 외부 설정에서 그래프 생성 Use Case에 필요한 값만 Application policy로 투영한다.
+     *
+     * Fuseki URL, OWL 위치와 모델명 같은 Adapter 기술 설정은 포함하지 않는다. 이 분리로
+     * Application Service가 Spring configuration이나 특정 제품을 알지 않게 한다.
+     *
+     * @param properties 환경 변수와 YAML이 binding된 전체 graph 설정
+     * @return 활성화, batch, confidence와 문서별 개수 상한만 가진 정책
+     */
     @Bean
     fun knowledgeGraphProjectionPolicy(properties: KnowledgeGraphProperties) =
         KnowledgeGraphProjectionPolicy(
@@ -26,7 +34,14 @@ class KnowledgeGraphConfig {
             maxRelationsPerDocument = properties.maxRelationsPerDocument,
         )
 
-    /** 그래프와 hybrid retrieval이 모두 활성화된 경우에만 SPARQL 사실 조회를 허용한다. */
+    /**
+     * 그래프 생성과 Hybrid GraphRAG flag가 모두 켜진 경우에만 사실 조회를 활성화한다.
+     *
+     * graph 자체가 꺼진 상태에서 retrieval만 켜도 Fuseki를 호출하지 않도록 두 flag를 논리곱한다.
+     *
+     * @param properties 외부 graph 및 hybrid retrieval 설정
+     * @return 활성 여부와 질문당 최대 graph fact 수
+     */
     @Bean
     fun knowledgeGraphRetrievalPolicy(properties: KnowledgeGraphProperties) =
         KnowledgeGraphRetrievalPolicy(

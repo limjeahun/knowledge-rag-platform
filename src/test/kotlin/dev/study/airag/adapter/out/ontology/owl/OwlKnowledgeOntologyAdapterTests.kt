@@ -12,11 +12,13 @@ class OwlKnowledgeOntologyAdapterTests {
 
     @Test
     fun `projects extractable OWL classes and object properties as the application ontology`() {
-        val adapter = OwlKnowledgeOntologyAdapter(catalog)
+        val adapter = OwlKnowledgeOntologyAdapter(OwlKnowledgeOntologyTranslator(catalog))
 
         val ontology = adapter.load()
 
         assertEquals("urn:airag:ontology:software-architecture:1.0.0", ontology.version)
+        assertEquals(ontology.entityTypes.sortedBy { it.code }, ontology.entityTypes)
+        assertEquals(ontology.relationTypes.sortedBy { it.code }, ontology.relationTypes)
         assertTrue("TECHNOLOGY" in ontology.entityTypesByCode)
         assertTrue("VECTOR_INDEX" in ontology.entityTypesByCode)
         assertTrue("DOCUMENT" in ontology.entityTypesByCode)

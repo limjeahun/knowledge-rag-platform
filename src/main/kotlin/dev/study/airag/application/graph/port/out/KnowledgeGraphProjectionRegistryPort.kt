@@ -10,9 +10,17 @@ import dev.study.airag.domain.vo.DocumentId
  * deployment history다.
  */
 interface KnowledgeGraphProjectionRegistryPort {
-    /** 성공한 projection을 문서의 유일한 활성 버전으로 기록한다. */
+    /**
+     * 외부 graph 저장이 성공한 projection을 문서의 유일한 활성 버전으로 기록한다.
+     *
+     * 같은 문서 버전과 ontology version의 재호출은 중복 이력이 아니라 멱등 활성화여야 한다.
+     */
     fun activate(receipt: KnowledgeGraphProjectionReceipt)
 
-    /** 문서 삭제 시 활성 projection을 이력 보존 상태로 전환한다. */
+    /**
+     * 문서 삭제 시 활성 projection을 물리 삭제하지 않고 이력 보존 상태로 전환한다.
+     *
+     * 활성 이력이 없는 문서는 성공적인 no-op으로 처리할 수 있다.
+     */
     fun retire(documentId: DocumentId)
 }

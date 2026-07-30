@@ -9,5 +9,11 @@ import dev.study.airag.application.graph.dto.result.KnowledgeGraphFactResult
  * 그래프 기능이 비활성화된 경우 빈 목록을 반환하며 외부 저장소를 호출하지 않는다.
  */
 fun interface FindRelevantKnowledgeGraphFactsUseCase {
+    /**
+     * 질문과 lexical하게 관련된 방향성 그래프 사실을 GraphRAG context로 반환한다.
+     *
+     * @param query 자연어 질문과 최대 사실 수
+     * @return 직접 진술과 추론을 구분한 사실 목록, 기능 비활성화 또는 결과 없음이면 빈 목록
+     */
     fun findRelevantFacts(query: FindRelevantKnowledgeGraphFactsQuery): List<KnowledgeGraphFactResult>
 }

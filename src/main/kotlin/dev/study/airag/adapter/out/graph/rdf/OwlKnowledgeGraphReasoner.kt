@@ -30,7 +30,18 @@ class OwlKnowledgeGraphReasoner(
     private val catalog: OwlOntologyCatalog,
     private val properties: KnowledgeGraphProperties,
 ) {
-    /** asserted RDF가 TBox와 일관될 때만 inferred/provenance 모델을 생성한다. */
+    /**
+     * asserted RDF를 배포 TBox와 결합해 class 및 object-property entailment를 물질화한다.
+     *
+     * Jena 모델을 임시 OWL ontology로 변환하고 import closure의 모든 공리를 합친 뒤 HermiT
+     * 일관성을 먼저 확인한다. named individual의 전체 타입과 객체 속성 값을 조회하고,
+     * [materializePropertyHierarchy]로 명시 관계의 상위·동치·역관계도 보완한다. 원문에 직접
+     * 존재하는 문장은 결과에서 제외하며 추론 문장마다 quote 없는 provenance를 생성한다.
+     *
+     * @param asserted Application 검증과 SHACL 검증을 통과한 직접 진술 RDF 모델
+     * @return 새롭게 도출된 문장 모델과 그 추론 provenance
+     * @throws IllegalArgumentException asserted ABox를 합친 ontology가 불일치하거나 추론 상한을 넘은 경우
+     */
     fun infer(asserted: Model): OwlReasoningResult {
         val snapshot = catalog.load()
         val manager = OWLManager.createOWLOntologyManager()
@@ -114,6 +125,22 @@ class OwlKnowledgeGraphReasoner(
         }
     }
 
+    /**
+     * asserted 객체 속성 문장에 대해 상위·동치 property와 inverse property 문장을 추가한다.
+     *
+     * HermiT의 개체별 property-value 조회만으로 구현체나 ontology 버전에 따라 누락될 수 있는
+     * property hierarchy 결과를 명시적으로 물질화한다. IRI subject/object인 문장만 대상으로
+     * 하며 datatype property와 blank node 관계는 처리하지 않는다.
+     *
+     * @param asserted 원문에서 직접 추출한 RDF
+     * @param inferred 새 entailment를 누적할 RDF
+     * @param provenance 추론 statement provenance를 누적할 RDF
+     * @param activity 이번 ontology checksum을 식별하는 PROV reasoning activity
+     * @param ontologyVersion entailment에 사용한 version IRI
+     * @param objectPropertyIris TBox에 선언된 유효 object property IRI
+     * @param reasoner 현재 결합 ontology를 분류한 HermiT Reasoner
+     * @param manager OWL property 객체를 생성하는 현재 ontology manager
+     */
     private fun materializePropertyHierarchy(
         asserted: Model,
         inferred: Model,
@@ -174,6 +201,20 @@ class OwlKnowledgeGraphReasoner(
             }
     }
 
+    /**
+     * 직접 진술과 중복되지 않는 하나의 entailment와 결정적 provenance 레코드를 추가한다.
+     *
+     * 동일 문장이 여러 추론 경로에서 도달해도 Jena Model의 집합 의미로 한 번만 남는다.
+     * provenance IRI는 subject·predicate·object의 안정적인 UUID이므로 재색인 결과가 결정적이다.
+     * 추론 사실은 원문의 직접 인용이 아니므로 document, chunk, quote를 만들어 넣지 않는다.
+     *
+     * @param statement 추가 후보인 추론 RDF 문장
+     * @param asserted 중복 여부를 확인할 직접 진술 모델
+     * @param inferred 추론 문장을 누적할 모델
+     * @param provenance 추론 출처를 누적할 모델
+     * @param activity 이 문장을 생성한 reasoning activity
+     * @param ontologyVersion 추론에 사용한 version IRI
+     */
     private fun addInferred(
         statement: org.apache.jena.rdf.model.Statement,
         asserted: Model,
@@ -203,6 +244,14 @@ class OwlKnowledgeGraphReasoner(
             .addProperty(RdfKnowledgeGraphVocabulary.WAS_GENERATED_BY, activity)
     }
 
+    /**
+     * Jena RDF 모델을 OWL API가 읽을 수 있는 Turtle 바이트로 직렬화한다.
+     *
+     * 메모리 스트림은 메서드 안에서 닫히며 원본 Model은 변경하지 않는다. 이 변환은 ABox를
+     * HermiT 결합 ontology에 추가하기 위한 Adapter 내부 경계다.
+     *
+     * @return 현재 모델 전체를 표현하는 Turtle UTF-8 호환 바이트
+     */
     private fun Model.asTurtle(): ByteArray =
         ByteArrayOutputStream().use { output ->
             RDFDataMgr.write(output, this, Lang.TURTLE)

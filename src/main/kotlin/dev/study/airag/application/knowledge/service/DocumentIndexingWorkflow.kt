@@ -30,6 +30,13 @@ class DocumentIndexingWorkflow(
      *
      * 삭제된 문서, 이미 색인된 문서, 현재 버전과 다른 이벤트도 완료 기록을 남겨 재전달을 끝낸다.
      * 색인 시작 이후 실패하면 문서를 FAILED로 저장하되 완료 기록은 남기지 않아 재시도를 허용한다.
+     * Milvus 교체와 활성화된 graph projection이 모두 성공한 후에만 Aggregate를 INDEXED로
+     * 전이한다. 외부 저장소 간 분산 transaction은 아니므로 실패 시 원본 문서 상태를 기준으로
+     * 같은 버전을 재처리하여 검색 프로젝션을 다시 교체한다.
+     *
+     * @param command event ID, 문서 ID와 발행 당시 문서 version
+     * @throws KnowledgeDocumentNotFoundException 원본 문서가 존재하지 않는 경우
+     * @throws DocumentIndexingFailedException 시작된 색인 단계 중 하나가 실패한 경우
      */
     @Transactional(noRollbackFor = [DocumentIndexingFailedException::class])
     fun index(command: IndexKnowledgeDocumentCommand) {
@@ -90,6 +97,14 @@ class DocumentIndexingWorkflow(
         }
     }
 
+    /**
+     * 현재 event ID를 영구 처리 완료로 기록하여 Kafka 재전달을 멱등 종료한다.
+     *
+     * 완료 시각은 외부 메시지가 아니라 주입된 Clock에서 얻는다. 실패 경로에서는 호출하지 않아
+     * 같은 event가 재전달될 수 있게 한다.
+     *
+     * @param command 완료 처리할 원본 색인 메시지 command
+     */
     private fun markCompleted(command: IndexKnowledgeDocumentCommand) {
         completionPort.complete(command.eventId, clock.instant())
     }

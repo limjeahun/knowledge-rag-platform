@@ -16,10 +16,10 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * 지식 그래프의 읽기 전용 HTTP 경계다.
+ * 지식 그래프의 읽기 전용 Controller
  *
- * Controller는 탐색 규칙이나 JPA 조회를 직접 수행하지 않고 요청 값을 Application Query로
- * 옮긴다. 그래프 변경은 문서 색인 파이프라인에서만 일어나므로 별도 쓰기 API를 제공하지 않는다.
+ * Controller는 탐색 규칙이나 JPA 조회를 직접 수행하지 않고 요청 값을 Application Query로 옮긴다.
+ * 그래프 변경은 문서 색인 파이프라인에서만 일어나므로 별도 쓰기 API를 제공하지 않는다.
  */
 @RestController
 @RequestMapping("/api/graph")

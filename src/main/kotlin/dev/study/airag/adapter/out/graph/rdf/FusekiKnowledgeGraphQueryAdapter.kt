@@ -26,7 +26,16 @@ import java.util.UUID
 class FusekiKnowledgeGraphQueryAdapter(
     private val gateway: RdfDatasetGateway,
 ) : KnowledgeGraphQueryPort {
-    /** 이름·별칭의 부분 일치와 선택적 ontology code로 asserted 개체를 검색한다. */
+    /**
+     * 대표 이름·별칭의 대소문자 무시 부분 일치와 선택적 ontology code로 개체를 검색한다.
+     *
+     * 개체의 식별 정보는 active asserted graph에서만 읽어 추론 graph에 타입만 존재하는
+     * 불완전한 개체가 결과에 들어오지 않게 한다. OPTIONAL alias 때문에 한 개체가 여러 행으로
+     * 펼쳐질 수 있어 SPARQL에서는 넉넉히 조회한 뒤 entity ID로 합치고 최종 limit을 적용한다.
+     *
+     * @param query 정규화된 검색어, 선택적 type code와 반환 상한
+     * @return 대표 이름 순으로 발견한 개체와 중복 제거된 별칭·원문 근거
+     */
     override fun searchEntities(query: SearchKnowledgeGraphQuery): List<KnowledgeGraphEntityView> =
         gateway.read { connection ->
             val entities = linkedMapOf<String, MutableEntity>()
@@ -80,7 +89,12 @@ class FusekiKnowledgeGraphQueryAdapter(
     /**
      * 요청된 개체에서 breadth-first 방식으로 제한된 깊이와 건수만 탐색한다.
      *
-     * 순환 그래프에서도 이미 방문한 개체와 관계를 다시 추가하지 않는다.
+     * 각 단계에서 현재 frontier에 인접한 asserted/inferred 관계를 조회한다. entity ID와
+     * relation ID를 map key로 사용하므로 순환 그래프에서도 이미 방문한 항목을 다시 추가하지
+     * 않는다. 중심 개체가 active asserted graph에 없으면 absence를 `null`로 표현한다.
+     *
+     * @param query 중심 entity ID, 1~2 hop 깊이와 전체 결과 상한
+     * @return 중심 개체·발견 개체·관계의 제한된 이웃 또는 중심 개체가 없으면 `null`
      */
     override fun findNeighborhood(query: GetKnowledgeEntityNeighborhoodQuery): KnowledgeGraphNeighborhoodView? =
         gateway.read { connection ->
@@ -122,7 +136,15 @@ class FusekiKnowledgeGraphQueryAdapter(
             )
         }
 
-    /** 질문 token이 개체 이름 또는 관계 code와 일치하는 asserted/inferred 사실을 반환한다. */
+    /**
+     * 질문 token이 source/target 이름 또는 관계 code와 일치하는 그래프 사실을 반환한다.
+     *
+     * 이 조회는 벡터 유사도가 아니라 가벼운 lexical GraphRAG 후보 검색이다. [searchableTokens]로
+     * 질문을 제한된 token 집합으로 만들고 asserted와 inferred active graph를 함께 조회한다.
+     *
+     * @param query 자연어 질문과 Application이 제한한 최대 사실 수
+     * @return assertion kind와 이용 가능한 직접 원문 근거가 포함된 관계 사실
+     */
     override fun findRelevantFacts(query: FindRelevantKnowledgeGraphFactsQuery): List<KnowledgeGraphFactView> =
         gateway.read { connection ->
             findRelations(
@@ -133,6 +155,17 @@ class FusekiKnowledgeGraphQueryAdapter(
             )
         }
 
+    /**
+     * active asserted graph에서 정확한 Application entity ID 하나를 조회한다.
+     *
+     * 타입 code는 저장된 rdf:type IRI와 현재 ontology graph의 `core:code`를 조인하여 얻는다.
+     * alias별 여러 SPARQL 행은 하나의 mutable accumulator로 합친다. evidence는 별도 batch
+     * 조회인 [addEntityEvidence]가 담당하므로 여기서는 identity와 label만 채운다.
+     *
+     * @param connection 현재 READ transaction의 connection
+     * @param entityId `core:entityId` literal과 정확히 일치할 ID
+     * @return 조회용 mutable 개체 또는 존재하지 않으면 `null`
+     */
     private fun findEntity(
         connection: org.apache.jena.rdfconnection.RDFConnection,
         entityId: String,
@@ -172,6 +205,24 @@ class FusekiKnowledgeGraphQueryAdapter(
         return entity
     }
 
+    /**
+     * active asserted/inferred graph에서 조건에 맞는 방향성 object-property 사실을 조회한다.
+     *
+     * [entityIds]가 있으면 어느 한 끝점이 해당 ID인 인접 관계를, [textTokens]가 있으면
+     * 끝점 이름이나 relation code가 token을 포함하는 관계를 찾는다. 두 조건이 모두 비어
+     * 있으면 상한 내 전체 관계 후보를 조회한다. 같은 triple의 provenance 행은 statement
+     * key로 합치고 직접 근거만 중복 없이 수집한다.
+     *
+     * inferred graph의 사실은 provenance에 document/quote가 없으므로 evidence가 빈 목록일 수
+     * 있다. relation ID가 없는 추론 사실은 triple 문자열로 결정적 ID를 만들어 API 안정성을
+     * 유지한다.
+     *
+     * @param connection 현재 READ transaction의 connection
+     * @param entityIds 이웃 조회에 사용할 entity ID 집합, 필터하지 않으면 빈 집합
+     * @param textTokens lexical 관련성 검색 token, 필터하지 않으면 빈 목록
+     * @param limit 반환할 중복 제거 관계의 최대 수
+     * @return asserted와 inferred를 구분한 기술 중립 그래프 사실
+     */
     private fun findRelations(
         connection: org.apache.jena.rdfconnection.RDFConnection,
         entityIds: Set<String>,
@@ -278,6 +329,16 @@ class FusekiKnowledgeGraphQueryAdapter(
         return byStatement.values.take(limit).map(MutableFact::toView)
     }
 
+    /**
+     * 여러 개체의 rdf:type assertion provenance를 한 번의 SPARQL로 조회해 결합한다.
+     *
+     * N개 개체마다 개별 evidence query를 실행하는 N+1 문제를 피한다. asserted type statement에
+     * 연결된 document, version, chunk, quote, confidence만 사용하며 추론 타입에는 가짜
+     * evidence를 붙이지 않는다. 빈 입력은 원격 호출 없이 즉시 반환한다.
+     *
+     * @param connection 현재 READ transaction의 connection
+     * @param entities entity ID별 mutable 조회 accumulator
+     */
     private fun addEntityEvidence(
         connection: org.apache.jena.rdfconnection.RDFConnection,
         entities: Map<String, MutableEntity>,
@@ -309,6 +370,16 @@ class FusekiKnowledgeGraphQueryAdapter(
         }
     }
 
+    /**
+     * 자연어 질문을 SPARQL `CONTAINS` 조건에 사용할 제한된 lexical token으로 정규화한다.
+     *
+     * 문자·숫자·underscore·hyphen 경계만 보존하고 한 글자 token을 제외한다. query 크기와
+     * 조건 폭증을 막기 위해 중복 제거 후 최대 8개만 사용한다. 유효 token이 없으면 trim한
+     * 원문 하나를 fallback으로 사용한다.
+     *
+     * @param text 사용자가 입력한 자연어 질문
+     * @return 순서를 보존한 최대 8개의 검색 token
+     */
     private fun searchableTokens(text: String): List<String> =
         text
             .lowercase()
@@ -318,6 +389,15 @@ class FusekiKnowledgeGraphQueryAdapter(
             .take(8)
             .ifEmpty { listOf(text.trim()) }
 
+    /**
+     * OPTIONAL provenance 바인딩이 완전한 직접 원문 근거이면 Application evidence로 변환한다.
+     *
+     * `documentId`가 없다는 것은 inferred statement이거나 근거가 없는 행이라는 뜻이므로
+     * `null`을 반환한다. 저장 계약상 documentId가 있으면 나머지 필드는 모두 필수이며,
+     * 누락되었다면 Jena 접근 예외로 손상된 projection을 드러낸다.
+     *
+     * @return 직접 원문 근거 또는 provenance가 없으면 `null`
+     */
     private fun QuerySolution.toEvidenceOrNull(): KnowledgeGraphEvidenceView? {
         if (!contains("documentId")) return null
         return KnowledgeGraphEvidenceView(
@@ -329,13 +409,29 @@ class FusekiKnowledgeGraphQueryAdapter(
         )
     }
 
+    /**
+     * 필수 SPARQL literal 바인딩을 문자열로 읽는다.
+     *
+     * 필드가 없거나 literal이 아니면 기본값으로 숨기지 않고 Jena 예외를 전파한다.
+     */
     private fun QuerySolution.literal(name: String): String = getLiteral(name).string
 
+    /**
+     * OPTIONAL SPARQL 바인딩이 존재하고 literal일 때만 문자열을 반환한다.
+     *
+     * @return literal 값 또는 미바인딩·비 literal이면 `null`
+     */
     private fun QuerySolution.optionalLiteral(name: String): String? =
         if (contains(name) && get(name).isLiteral) getLiteral(name).string else null
 
+    /** 필수 SPARQL resource 바인딩의 절대 IRI를 반환한다. */
     private fun QuerySolution.resourceUri(name: String): String = getResource(name).uri
 
+    /**
+     * GraphRAG 내부 fact view를 이웃 조회용 relation view로 손실 없이 변환한다.
+     *
+     * assertion kind와 evidence를 유지하여 REST 응답에서도 직접 진술과 추론을 구분한다.
+     */
     private fun KnowledgeGraphFactView.toRelationView() =
         KnowledgeGraphRelationView(
             relationId = relationId,
@@ -349,6 +445,13 @@ class FusekiKnowledgeGraphQueryAdapter(
             assertionKind = assertionKind,
         )
 
+    /**
+     * 사용자 검색어나 entity ID를 SPARQL 문자열 literal로 안전하게 이스케이프한다.
+     *
+     * 동적 값은 쿼리 구조나 IRI 위치에 삽입하지 않고 이 메서드가 만든 literal로만 사용한다.
+     *
+     * @return 양쪽 큰따옴표를 포함한 SPARQL 문자열 literal
+     */
     private fun sparqlString(value: String): String =
         "\"" +
             value
@@ -358,6 +461,7 @@ class FusekiKnowledgeGraphQueryAdapter(
                 .replace("\n", "\\n") +
             "\""
 
+    /** provenance relation ID가 없는 추론 triple에 재현 가능한 fallback UUID를 부여한다. */
     private fun stableUuid(value: String): UUID = UUID.nameUUIDFromBytes(value.toByteArray(StandardCharsets.UTF_8))
 
     private data class MutableEntity(
@@ -368,6 +472,11 @@ class FusekiKnowledgeGraphQueryAdapter(
         val aliases: MutableSet<String> = linkedSetOf(),
         val evidence: MutableList<KnowledgeGraphEvidenceView> = mutableListOf(),
     ) {
+        /**
+         * SPARQL 여러 행에서 누적한 별칭과 evidence를 불변 Port view로 고정한다.
+         *
+         * 동일 provenance가 조인으로 반복될 수 있으므로 evidence는 마지막에 중복 제거한다.
+         */
         fun toView() =
             KnowledgeGraphEntityView(
                 entityId = entityId,
@@ -390,6 +499,7 @@ class FusekiKnowledgeGraphQueryAdapter(
         val targetName: String,
         val evidence: MutableList<KnowledgeGraphEvidenceView> = mutableListOf(),
     ) {
+        /** 한 triple에 누적된 assertion kind와 원문 근거를 불변 GraphRAG fact로 고정한다. */
         fun toView() =
             KnowledgeGraphFactView(
                 relationId = relationId,

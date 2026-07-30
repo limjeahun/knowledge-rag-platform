@@ -37,7 +37,14 @@ class ProjectKnowledgeGraphService(
      * 기능이 활성화된 경우에만 그래프를 생성하고 현재 문서 버전의 프로젝션을 교체한다.
      *
      * 활성화 상태에서는 예외를 삼키지 않는다. Milvus와 그래프 중 하나만 최신인 상태를
-     * INDEXED로 확정하지 않도록 호출자가 같은 색인 실패 흐름으로 처리하게 한다.
+     * INDEXED로 확정하지 않도록 호출자가 같은 색인 실패 흐름으로 처리하게 한다. 청크를 설정된
+     * 크기로 나눠 LLM 호출 크기를 제한하지만 모든 batch 결과는 문서 단위로 검증·병합한 후
+     * 한 번만 graph index를 교체한다. Fuseki 교체가 성공한 receipt만 registry에 활성화한다.
+     *
+     * @param document 현재 색인을 시작한 원본 Aggregate와 그 문서 버전
+     * @param chunks 같은 문서 버전에서 생성되어 Milvus 색인에도 사용된 청크
+     * @throws InvalidKnowledgeGraphExtractionException LLM 후보가 ontology 또는 원문 근거 계약을 위반한 경우
+     * @throws Exception AI 추출, 그래프 저장 또는 registry 기록이 실패한 경우
      */
     override fun project(
         document: KnowledgeDocument,
