@@ -87,6 +87,26 @@ class FusekiKnowledgeGraphAdapterTests {
         )
         val relevant = query.findRelevantFacts(FindRelevantKnowledgeGraphFactsQuery("Indexer", 20))
         assertEquals(setOf("WRITES_TO", "USES"), relevant.map { it.type }.toSet())
+        val unrelatedWithoutSeeds =
+            query.findRelevantFacts(
+                FindRelevantKnowledgeGraphFactsQuery(
+                    text = "lexically unrelated question",
+                    limit = 20,
+                    maxHops = 0,
+                ),
+            )
+        assertTrue(unrelatedWithoutSeeds.isEmpty())
+        val seeded =
+            query.findRelevantFacts(
+                FindRelevantKnowledgeGraphFactsQuery(
+                    text = "lexically unrelated question",
+                    limit = 20,
+                    seedChunkIds = listOf("chunk-1"),
+                    maxHops = 0,
+                ),
+            )
+        assertEquals(listOf("WRITES_TO"), seeded.map { it.type })
+        assertTrue(seeded.single().evidence.any { it.chunkId == "chunk-1" })
 
         index.remove(projection.documentId)
 

@@ -23,6 +23,7 @@ import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphNeighborhood
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphProjection
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphProjectionReceipt
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphRelationView
+import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphReprojectionCriteria
 import dev.study.airag.application.graph.port.out.dto.KnowledgeOntology
 import dev.study.airag.application.graph.port.out.dto.OntologyEntityType
 import dev.study.airag.application.graph.port.out.dto.OntologyRelationType
@@ -284,6 +285,50 @@ class KnowledgeGraphApplicationServiceTests {
     }
 
     @Test
+    fun `relevant fact query bounds and deduplicates vector chunk seeds with retrieval policy`() {
+        var capturedQuery: FindRelevantKnowledgeGraphFactsQuery? = null
+        val store =
+            object : KnowledgeGraphQueryPort {
+                override fun searchEntities(query: SearchKnowledgeGraphQuery) = emptyList<KnowledgeGraphEntityView>()
+
+                override fun findNeighborhood(
+                    query: GetKnowledgeEntityNeighborhoodQuery,
+                ): KnowledgeGraphNeighborhoodView? = null
+
+                override fun findRelevantFacts(
+                    query: FindRelevantKnowledgeGraphFactsQuery,
+                ): List<KnowledgeGraphFactView> {
+                    capturedQuery = query
+                    return emptyList()
+                }
+            }
+        val service =
+            QueryKnowledgeGraphService(
+                KnowledgeOntologyPort { ontology },
+                store,
+                KnowledgeGraphRetrievalPolicy(
+                    enabled = true,
+                    maxFacts = 3,
+                    maxSeedChunks = 2,
+                    maxHops = 1,
+                ),
+            )
+
+        service.findRelevantFacts(
+            FindRelevantKnowledgeGraphFactsQuery(
+                text = "Indexer",
+                limit = 20,
+                seedChunkIds = listOf("chunk-1", "chunk-1", "chunk-2", "chunk-3"),
+                maxHops = 2,
+            ),
+        )
+
+        assertEquals(3, capturedQuery?.limit)
+        assertEquals(listOf("chunk-1", "chunk-2"), capturedQuery?.seedChunkIds)
+        assertEquals(1, capturedQuery?.maxHops)
+    }
+
+    @Test
     fun `graph queries reject invalid primitive input when they are created`() {
         assertFailsWith<IllegalArgumentException> {
             SearchKnowledgeGraphQuery(" ")
@@ -299,6 +344,12 @@ class KnowledgeGraphApplicationServiceTests {
         }
         assertFailsWith<IllegalArgumentException> {
             GetKnowledgeEntityNeighborhoodQuery("entity-1", limit = 101)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            FindRelevantKnowledgeGraphFactsQuery("Indexer", seedChunkIds = listOf(""))
+        }
+        assertFailsWith<IllegalArgumentException> {
+            FindRelevantKnowledgeGraphFactsQuery("Indexer", maxHops = 3)
         }
     }
 
@@ -358,6 +409,9 @@ class KnowledgeGraphApplicationServiceTests {
             override fun activate(receipt: KnowledgeGraphProjectionReceipt) = Unit
 
             override fun retire(documentId: DocumentId) = Unit
+
+            override fun findReprojectionCandidates(criteria: KnowledgeGraphReprojectionCriteria) =
+                emptyList<DocumentId>()
         }
 
     private fun receipt(projection: KnowledgeGraphProjection) =

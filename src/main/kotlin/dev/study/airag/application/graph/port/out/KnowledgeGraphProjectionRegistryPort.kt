@@ -1,6 +1,7 @@
 package dev.study.airag.application.graph.port.out
 
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphProjectionReceipt
+import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphReprojectionCriteria
 import dev.study.airag.domain.vo.DocumentId
 
 /**
@@ -23,4 +24,12 @@ interface KnowledgeGraphProjectionRegistryPort {
      * 활성 이력이 없는 문서는 성공적인 no-op으로 처리할 수 있다.
      */
     fun retire(documentId: DocumentId)
+
+    /**
+     * 현재 배포 ontology version과 다른 ACTIVE 프로젝션의 문서 ID를 오래된 순서로 조회한다.
+     *
+     * 이 메서드는 후보만 반환한다. 문서 상태 전이와 Outbox 기록은 Application Service가
+     * PostgreSQL 원본 문서를 다시 확인한 뒤 같은 트랜잭션에서 수행한다.
+     */
+    fun findReprojectionCandidates(criteria: KnowledgeGraphReprojectionCriteria): List<DocumentId>
 }

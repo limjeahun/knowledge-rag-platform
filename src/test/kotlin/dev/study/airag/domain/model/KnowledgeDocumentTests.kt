@@ -80,6 +80,26 @@ class KnowledgeDocumentTests {
     }
 
     @Test
+    fun `indexed document can request ontology reindexing without changing its version`() {
+        val document = KnowledgeDocument.register(DocumentId.newId(), "title", "content", emptyMap(), now)
+        document.pullDomainEvents()
+        document.startIndexing(now.plusSeconds(1))
+        document.completeIndexing(now.plusSeconds(2))
+
+        document.requestReindexing(now.plusSeconds(3))
+
+        val event = document.pullDomainEvents().single() as DocumentIndexingRequested
+        assertEquals(DocumentIndexingStatus.PENDING, document.status)
+        assertEquals(1, document.version)
+        assertNull(document.indexedAt)
+        assertEquals(document.id, event.documentId)
+        assertEquals(document.version, event.documentVersion)
+        assertFailsWith<InvalidDocumentStateTransitionException> {
+            document.requestReindexing(now.plusSeconds(4))
+        }
+    }
+
+    @Test
     fun `pending document cannot complete indexing`() {
         val document = KnowledgeDocument.register(DocumentId.newId(), "title", "content", emptyMap(), now)
         val exception = assertFailsWith<InvalidDocumentStateTransitionException> { document.completeIndexing(now) }

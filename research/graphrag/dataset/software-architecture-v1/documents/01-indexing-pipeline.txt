@@ -1,0 +1,4 @@
+KnowledgeDocument 등록은 PostgreSQL에 원문과 PENDING 상태를 저장하고 같은 로컬 트랜잭션에 Transactional Outbox 이벤트를 기록한다.
+Outbox Publisher는 색인 요청을 Kafka에 발행한다. Kafka Consumer는 IndexKnowledgeDocumentUseCase를 호출하고 Redis Processing Lock으로 동시 중복 처리를 줄인다.
+색인 Use Case는 문서를 청킹하고 Ollama의 nomic-embed-text 모델로 임베딩을 생성한 뒤 문서 청크를 Milvus vector index에 저장한다.
+처리가 끝나면 PostgreSQL의 KnowledgeDocument 상태를 INDEXED로 확정한다. 영구 메시지 멱등성은 Redis가 아니라 PostgreSQL processed_messages 제약으로 보장한다.

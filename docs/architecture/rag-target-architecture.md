@@ -117,15 +117,20 @@ PostgreSQL
 flowchart LR
     Client["REST 또는 MCP"] --> Port["Search/Answer Inbound Port"]
     Port --> Milvus["Milvus similarity search"]
-    Port --> SPARQL["Fuseki relevant graph facts"]
     Milvus --> Sources["추적 가능한 source 목록"]
+    Sources --> Seeds["상위 chunkId 시드"]
+    Seeds --> SPARQL["Fuseki provenance + lexical + 이웃 탐색"]
     SPARQL --> Facts["ASSERTED/INFERRED facts"]
     Sources --> Ollama["문서 context + graph facts + question"]
     Facts --> Ollama
     Ollama --> Answer["답변 + sources + graphFacts"]
 ```
 
-검색 결과와 graph fact는 각각 한 번만 만들고 답변 생성과 응답 반환에서 재사용한다. `QueryKnowledgeService`는 Milvus 근거와 relevant subgraph를 조율하고 Ollama adapter에는 기술 client가 아닌 parameter object를 전달한다. Application 계층에는 Spring AI `Document`, Jena `Model`, Milvus client, Kafka record, Redis template가 노출되지 않는다.
+검색 결과와 graph fact는 각각 한 번만 만들고 답변 생성과 응답 반환에서 재사용한다. `QueryKnowledgeService`는 Milvus 상위 결과의 `chunkId`를 graph query에 전달한다. Fuseki Adapter는 같은 provenance를 가진 asserted 사실을 먼저 선택하고, 질문 token과 설정된 0~2단계 이웃 관계로 부족한 context를 보완한다. 시드 개수, 탐색 깊이와 전체 사실 수는 Application policy로 제한한다. Ollama Adapter에는 기술 client가 아닌 parameter object를 전달하며 Application 계층에는 Spring AI `Document`, Jena `Model`, Milvus client, Kafka record, Redis template가 노출되지 않는다.
+
+- `KNOWLEDGE_GRAPH_MAX_SEED_CHUNKS`: Milvus 결과 중 graph provenance 시드로 사용할 최대 청크 수, 기본 8
+- `KNOWLEDGE_GRAPH_MAX_HOPS`: 직접 사실 이후 확장할 최대 이웃 깊이, 기본 1, 허용 범위 0~2
+- `KNOWLEDGE_GRAPH_MAX_FACTS`: 답변 context에 넣을 최대 그래프 사실 수, 기본 20
 
 - `GET /api/graph/entities?query=...&type=TECHNOLOGY&limit=20`
 - `GET /api/graph/entities/{entityId}/neighborhood?depth=1&limit=50`
@@ -141,11 +146,19 @@ flowchart LR
 - Milvus 유실: PostgreSQL 원문을 기준으로 실패 문서를 재시도하거나 재색인 Use Case를 확장한다.
 - 그래프 추출/SHACL/OWL 일관성 실패: 기능이 활성화된 경우 문서를 `FAILED`로 저장하고 같은 색인 재시도 정책을 사용한다.
 - Fuseki 유실: PostgreSQL 원문과 projection registry를 기준으로 전체 재색인한다.
-- ontology 버전 변경: version IRI와 checksum이 기존 projection과 다르므로 PostgreSQL 원문에서 전체 재색인한다.
+- ontology 버전 변경: `ReindexKnowledgeDocumentsForOntologyUseCase`가 현재 OWL version과 다른 ACTIVE projection을 찾고 `KnowledgeDocument.requestReindexing()`과 Transactional Outbox로 기존 Kafka 색인 흐름에 다시 접수한다. 공개 관리 API는 만들지 않는다. 기본 비활성 스케줄러는 `KNOWLEDGE_GRAPH_ONTOLOGY_REINDEX_ENABLED=true`일 때만 설정된 배치와 cron으로 이 Use Case를 호출한다.
 
 ## 관측성
 
 - Actuator: `/actuator/health`, `/actuator/metrics`, `/actuator/prometheus`
 - Counter: `knowledge.outbox.delivered`, `knowledge.outbox.delivery.failed`
 - Counter: `knowledge.indexing.consumed`, `knowledge.indexing.lock.contention`
+- Counter: `knowledge.graph.ontology.reindex.requested`, `knowledge.graph.ontology.reindex.skipped`
 - 색인 로그에는 `eventId`와 `documentId`가 포함된다.
+
+## 비교 연구 환경
+
+운영 경로는 OWL/SHACL/Fuseki와 Milvus를 유지한다. Microsoft GraphRAG와 LightRAG는
+`research/graphrag`의 Python 가상환경 및 Docker Compose `research` profile에만 존재하며
+Spring Boot runtime이나 Gradle classpath에 포함되지 않는다. 공통 버전형 문서·질문·gold
+graph를 사용하고 용어·관계·근거 회수율, 지연시간과 실패 수를 동일 JSONL 계약으로 평가한다.

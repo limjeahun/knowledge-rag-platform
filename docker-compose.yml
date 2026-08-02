@@ -128,6 +128,54 @@ services:
       timeout: 3s
       retries: 30
 
+  microsoft-graphrag:
+    profiles: ["research"]
+    build:
+      context: ./research/graphrag
+      dockerfile: Dockerfile
+      args:
+        UV_VERSION: "0.11.32"
+    image: knowledge-rag-platform/graphrag-research:3.1.0-lightrag-1.5.4
+    environment:
+      GRAPHRAG_API_KEY: ollama
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3.6:27b}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      PRIMARY_RAG_BASE_URL: http://host.docker.internal:8080
+      LIGHTRAG_BASE_URL: http://lightrag-research:9621
+    volumes:
+      - ./research/graphrag/workspaces:/opt/research/workspaces
+      - ./research/graphrag/results:/opt/research/results
+      - ./research/graphrag/reports:/opt/research/reports
+    command: ["rag-compare", "--help"]
+
+  lightrag-research:
+    profiles: ["research"]
+    build:
+      context: ./research/graphrag
+      dockerfile: Dockerfile
+      args:
+        UV_VERSION: "0.11.32"
+    image: knowledge-rag-platform/graphrag-research:3.1.0-lightrag-1.5.4
+    environment:
+      HOST: 0.0.0.0
+      PORT: "9621"
+      WORKERS: "1"
+      WORKING_DIR: /opt/research/workspaces/lightrag/rag_storage
+      INPUT_DIR: /opt/research/workspaces/lightrag/inputs
+      LLM_BINDING: ollama
+      LLM_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3.6:27b}
+      LLM_BINDING_HOST: http://host.docker.internal:11434
+      EMBEDDING_BINDING: ollama
+      EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      EMBEDDING_BINDING_HOST: http://host.docker.internal:11434
+      EMBEDDING_DIM: "768"
+    ports:
+      - "${LIGHTRAG_PORT:-9621}:9621"
+    volumes:
+      - ./research/graphrag/workspaces:/opt/research/workspaces
+    command: ["lightrag-server", "--host", "0.0.0.0", "--port", "9621"]
+
 volumes:
   postgres-data:
   etcd-data:

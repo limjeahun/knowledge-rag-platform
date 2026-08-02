@@ -1,0 +1,12 @@
+{
+  "id": "software-architecture-v1",
+  "language": "ko",
+  "ontologyVersion": "urn:airag:ontology:software-architecture:1.0.0",
+  "documents": [
+    "01-indexing-pipeline.txt",
+    "02-ontology-graph.txt",
+    "03-hybrid-rag.txt"
+  ],
+  "questions": "questions.json",
+  "goldGraph": "gold-graph.ttl"
+}

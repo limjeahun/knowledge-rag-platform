@@ -15,4 +15,10 @@ interface KnowledgeGraphProjectionRunRepository : JpaRepository<KnowledgeGraphPr
         documentId: UUID,
         status: String,
     ): List<KnowledgeGraphProjectionRunEntity>
+
+    /** 지정 ontology version이 아닌 활성 프로젝션을 오래 활성화된 순서로 조회한다. */
+    fun findTop1000ByStatusAndOntologyVersionIriNotOrderByActivatedAtAsc(
+        status: String,
+        ontologyVersionIri: String,
+    ): List<KnowledgeGraphProjectionRunEntity>
 }

@@ -114,7 +114,11 @@ class QueryKnowledgeService(
         val graphFacts =
             graphFactsUseCase
                 .findRelevantFacts(
-                    FindRelevantKnowledgeGraphFactsQuery(query.question, MAX_GRAPH_FACTS),
+                    FindRelevantKnowledgeGraphFactsQuery(
+                        text = query.question,
+                        limit = MAX_GRAPH_FACTS,
+                        seedChunkIds = sources.map(KnowledgeSearchHit::chunkId),
+                    ),
                 )
         val request = KnowledgeAnswerGenerationRequest(query.question, sources, graphFacts)
         return try {

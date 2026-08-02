@@ -47,5 +47,7 @@ class KnowledgeGraphConfig {
         KnowledgeGraphRetrievalPolicy(
             enabled = properties.enabled && properties.hybridRetrievalEnabled,
             maxFacts = properties.maxGraphFacts,
+            maxSeedChunks = properties.maxGraphSeedChunks,
+            maxHops = properties.maxGraphHops,
         )
 }

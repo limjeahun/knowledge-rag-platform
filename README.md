@@ -106,11 +106,45 @@ $env:KNOWLEDGE_GRAPH_ENABLED="true"
 
 온톨로지는 OWL/Turtle, 그래프 저장소는 Fuseki로 고정됩니다. 활성화된 색인 흐름은 LLM 후보를 애플리케이션 규칙과 SHACL로 검증하고, HermiT가 계산한 사실을 원문 직접 진술과 분리해 저장합니다. `/api/chat` 응답의 `graphFacts`에는 `ASSERTED` 또는 `INFERRED` 구분이 포함됩니다.
 
+Hybrid 조회는 Milvus 상위 결과의 `chunkId`를 Fuseki provenance 시드로 사용합니다. 같은 청크가
+직접 뒷받침하는 asserted 사실을 먼저 고르고 질문 어휘와 제한된 이웃의 inferred 사실로
+보완합니다. `KNOWLEDGE_GRAPH_MAX_SEED_CHUNKS`, `KNOWLEDGE_GRAPH_MAX_HOPS`,
+`KNOWLEDGE_GRAPH_MAX_FACTS`로 context 폭을 제한할 수 있습니다.
+
+OWL version을 올린 뒤 기존 활성 projection을 재생성하려면 아래 설정으로 내부 스케줄러를
+명시적으로 활성화합니다. 이 경로는 공개 관리 API가 아니라 Aggregate 상태 전이와
+Transactional Outbox를 사용합니다.
+
+```powershell
+$env:KNOWLEDGE_GRAPH_ONTOLOGY_REINDEX_ENABLED="true"
+$env:KNOWLEDGE_GRAPH_ONTOLOGY_REINDEX_BATCH_SIZE="100"
+$env:KNOWLEDGE_GRAPH_ONTOLOGY_REINDEX_CRON="0 0 * * * *"
+```
+
 - Ontology: `src/main/resources/ontology/core`, `src/main/resources/ontology/domain`
 - SHACL: `src/main/resources/ontology/shapes`
 - Fuseki SPARQL dataset: `http://localhost:3030/knowledge`
 - Protégé 가이드: `docs/ontology/protege-guide.md`
 - 설계·버전·재색인 가이드: `docs/ontology/software-architecture-ontology-guide.md`
+
+## Microsoft GraphRAG와 LightRAG 비교 연구
+
+두 도구는 운영 구현을 대체하지 않고 `research/graphrag`에 격리된 비교군으로 실제 버전을
+고정합니다. Microsoft GraphRAG `3.1.0`, LightRAG `1.5.4`, 공통 데이터셋·실행기·평가기와
+`uv.lock`이 포함되어 있습니다. Windows 애플리케이션 제어가 Microsoft의 네이티브 Leiden
+확장을 차단하는 환경에서는 보안 정책을 우회하지 않고 Docker Compose `research` profile을
+사용합니다.
+
+```powershell
+docker compose --profile research build microsoft-graphrag lightrag-research
+docker compose run --rm microsoft-graphrag rag-compare smoke
+docker compose run --rm microsoft-graphrag rag-compare prepare --system microsoft
+docker compose run --rm microsoft-graphrag rag-compare index --system microsoft
+docker compose --profile research up -d lightrag-research
+docker compose run --rm microsoft-graphrag rag-compare index --system lightrag
+```
+
+상세 실행·평가 절차는 `research/graphrag/README.md`를 따릅니다.
 
 ## 관측성과 테스트
 

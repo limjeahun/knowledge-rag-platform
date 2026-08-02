@@ -144,9 +144,7 @@ class OwlOntologyCatalog(
 
     /**
      * Spring resource 위치의 전체 바이트를 읽고 스트림을 즉시 닫는다.
-     *
-     * 문자열로 디코딩했다가 다시 인코딩하지 않기 때문에 checksum은 줄바꿈과 annotation을 포함한
-     * 실제 배포 파일을 정확히 식별한다.
+     * 문자열로 디코딩했다가 다시 인코딩하지 않기 때문에 checksum은 줄바꿈과 annotation을 포함한 실제 배포 파일을 정확히 식별한다.
      *
      * @param location `classpath:` 또는 Spring [ResourceLoader]가 지원하는 리소스 위치
      * @return 해당 리소스의 원본 바이트
@@ -160,9 +158,8 @@ class OwlOntologyCatalog(
 
     /**
      * 순서가 고정된 ontology 및 shapes 문서들을 하나의 SHA-256 식별자로 계산한다.
-     *
-     * 각 문서 뒤에 NUL 구분자를 추가하여 서로 다른 문서 경계가 같은 연결 바이트로 해석되는
-     * 모호성을 제거한다. 입력 순서는 설정의 ontology 위치 순서와 마지막 shapes 순서다.
+     * 각 문서 뒤에 NUL 구분자를 추가하여 서로 다른 문서 경계가 같은 연결 바이트로 해석되는 모호성을 제거한다.
+     * 입력 순서는 설정의 ontology 위치 순서와 마지막 shapes 순서다.
      *
      * @param documents checksum에 포함할 원본 리소스 바이트 목록
      * @return 소문자 16진수 64자리 SHA-256 문자열

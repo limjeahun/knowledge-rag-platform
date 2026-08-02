@@ -84,7 +84,15 @@ class QueryKnowledgeGraphService(
     @Transactional(readOnly = true)
     override fun findRelevantFacts(query: FindRelevantKnowledgeGraphFactsQuery): List<KnowledgeGraphFactResult> {
         if (!retrievalPolicy.enabled) return emptyList()
-        val boundedQuery = query.copy(limit = minOf(query.limit, retrievalPolicy.maxFacts))
+        val boundedQuery =
+            query.copy(
+                limit = minOf(query.limit, retrievalPolicy.maxFacts),
+                seedChunkIds =
+                    query.seedChunkIds
+                        .distinct()
+                        .take(retrievalPolicy.maxSeedChunks),
+                maxHops = minOf(query.maxHops, retrievalPolicy.maxHops),
+            )
         return queryPort.findRelevantFacts(boundedQuery).map { fact ->
             KnowledgeGraphFactResult(
                 relationId = fact.relationId,

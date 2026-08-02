@@ -1,0 +1,25 @@
+{
+  "questions": [
+    {
+      "id": "Q1",
+      "question": "등록된 지식 문서가 Milvus에 색인될 때 어떤 구성요소를 거치는가?",
+      "expectedTerms": ["PostgreSQL", "Outbox", "Kafka", "Ollama", "Milvus"],
+      "expectedRelationCodes": ["PUBLISHES_TO", "WRITES_TO"],
+      "expectedSources": ["01-indexing-pipeline.txt"]
+    },
+    {
+      "id": "Q2",
+      "question": "OWL 온톨로지와 지식 그래프를 검증하고 저장하는 도구의 역할은 무엇인가?",
+      "expectedTerms": ["OWLAPI", "HermiT", "SHACL", "Jena", "Fuseki", "TDB2"],
+      "expectedRelationCodes": ["USES", "STORES_IN"],
+      "expectedSources": ["02-ontology-graph.txt"]
+    },
+    {
+      "id": "Q3",
+      "question": "하이브리드 RAG에서 Milvus 검색 결과와 Fuseki 사실은 어떻게 연결되는가?",
+      "expectedTerms": ["chunkId", "provenance", "asserted", "inferred"],
+      "expectedRelationCodes": ["READS_FROM", "USES"],
+      "expectedSources": ["03-hybrid-rag.txt"]
+    }
+  ]
+}

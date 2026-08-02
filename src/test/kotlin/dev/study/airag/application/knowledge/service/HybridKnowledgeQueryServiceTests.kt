@@ -1,6 +1,7 @@
 package dev.study.airag.application.knowledge.service
 
 import dev.study.airag.application.graph.dto.KnowledgeGraphAssertionKind
+import dev.study.airag.application.graph.dto.query.FindRelevantKnowledgeGraphFactsQuery
 import dev.study.airag.application.graph.dto.result.KnowledgeGraphFactResult
 import dev.study.airag.application.graph.port.`in`.FindRelevantKnowledgeGraphFactsUseCase
 import dev.study.airag.application.knowledge.dto.query.AnswerKnowledgeQuestionQuery
@@ -48,12 +49,17 @@ class HybridKnowledgeQueryServiceTests {
                 ),
             )
         val answerPort = RecordingAnswerPort()
+        var graphQuery: FindRelevantKnowledgeGraphFactsQuery? = null
         val service =
             QueryKnowledgeService(
                 documentPort = EmptyDocumentPort,
                 knowledgeIndexPort = FixedKnowledgeIndexPort(sources),
                 generateAnswerPort = answerPort,
-                graphFactsUseCase = FindRelevantKnowledgeGraphFactsUseCase { facts },
+                graphFactsUseCase =
+                    FindRelevantKnowledgeGraphFactsUseCase { query ->
+                        graphQuery = query
+                        facts
+                    },
             )
 
         val result = service.answer(AnswerKnowledgeQuestionQuery("Indexer는 무엇을 사용하는가?"))
@@ -63,6 +69,7 @@ class HybridKnowledgeQueryServiceTests {
         assertSame(facts, result.graphFacts)
         assertSame(sources, answerPort.request!!.sources)
         assertSame(facts, answerPort.request!!.graphFacts)
+        assertEquals(listOf("chunk-1"), graphQuery?.seedChunkIds)
     }
 
     private class RecordingAnswerPort : GenerateKnowledgeAnswerPort {

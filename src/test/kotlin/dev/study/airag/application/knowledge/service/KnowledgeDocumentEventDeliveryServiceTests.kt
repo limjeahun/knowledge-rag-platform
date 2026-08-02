@@ -4,6 +4,7 @@ import dev.study.airag.application.graph.port.out.KnowledgeGraphIndexPort
 import dev.study.airag.application.graph.port.out.KnowledgeGraphProjectionRegistryPort
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphProjection
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphProjectionReceipt
+import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphReprojectionCriteria
 import dev.study.airag.application.knowledge.dto.query.SearchKnowledgeQuery
 import dev.study.airag.application.knowledge.dto.result.KnowledgeSearchHit
 import dev.study.airag.application.knowledge.outbox.OutboxEnvelope
@@ -175,5 +176,7 @@ class KnowledgeDocumentEventDeliveryServiceTests {
         override fun retire(documentId: DocumentId) {
             retired += documentId
         }
+
+        override fun findReprojectionCandidates(criteria: KnowledgeGraphReprojectionCriteria) = emptyList<DocumentId>()
     }
 }

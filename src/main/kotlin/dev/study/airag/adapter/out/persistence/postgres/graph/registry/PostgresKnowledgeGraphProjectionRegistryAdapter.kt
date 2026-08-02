@@ -2,6 +2,7 @@ package dev.study.airag.adapter.out.persistence.postgres.graph.registry
 
 import dev.study.airag.application.graph.port.out.KnowledgeGraphProjectionRegistryPort
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphProjectionReceipt
+import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphReprojectionCriteria
 import dev.study.airag.domain.vo.DocumentId
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -77,6 +78,26 @@ class PostgresKnowledgeGraphProjectionRegistryAdapter(
     override fun retire(documentId: DocumentId) {
         retireActive(documentId, clock.instant())
     }
+
+    /**
+     * 현재 OWL version과 다른 ACTIVE 이력의 문서를 오래된 활성화 순서로 반환한다.
+     *
+     * 동일 문서의 ACTIVE 이력은 DB 부분 unique index가 한 건으로 제한한다. Adapter는 Port가
+     * 요청한 상한까지만 Domain ID로 변환하며 RDF 본문이나 JPA entity를 외부로 노출하지 않는다.
+     *
+     * @param criteria 현재 ontology version과 후보 상한
+     * @return 현재 ontology로 다시 투영해야 할 문서 식별자
+     */
+    @Transactional(readOnly = true)
+    override fun findReprojectionCandidates(criteria: KnowledgeGraphReprojectionCriteria): List<DocumentId> =
+        projectionRepository
+            .findTop1000ByStatusAndOntologyVersionIriNotOrderByActivatedAtAsc(
+                ACTIVE,
+                criteria.currentOntologyVersion,
+            ).asSequence()
+            .map { DocumentId.from(it.documentId.toString()) }
+            .take(criteria.limit)
+            .toList()
 
     /**
      * receipt의 OWL 배포 정보를 version IRI 기준으로 등록하거나 최신 checksum으로 갱신한다.

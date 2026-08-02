@@ -1,0 +1,4 @@
+소프트웨어 아키텍처 온톨로지는 Protégé에서 Turtle 형식의 OWL 문서로 연구하고 관리한다.
+애플리케이션의 OWLAPI Adapter는 배포된 OWL class와 object property를 읽고 HermiT Reasoner로 계층과 논리 일관성을 검사한다.
+문서에서 추출한 개체와 관계는 SHACL shape 검증과 OWL 추론을 거친다. Jena RDFConnection은 asserted graph, inferred graph, provenance graph를 Fuseki의 TDB2 dataset에 저장한다.
+PostgreSQL projection registry는 문서 버전과 온톨로지 버전의 활성 이력을 기록하지만 RDF 본문을 저장하지 않는다.

@@ -1,0 +1,39 @@
+@prefix ex: <urn:airag:research:software-architecture:> .
+@prefix core: <urn:airag:ontology:core#> .
+@prefix sa: <urn:airag:ontology:software-architecture#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ex:outbox a sa:Component ;
+    rdfs:label "Transactional Outbox" ;
+    sa:publishesTo ex:kafka .
+
+ex:indexingConsumer a sa:InboundAdapter ;
+    rdfs:label "Kafka indexing consumer" ;
+    sa:consumesFrom ex:kafka ;
+    sa:invokesPort ex:indexUseCase .
+
+ex:indexUseCase a sa:ApplicationService ;
+    rdfs:label "IndexKnowledgeDocumentUseCase" ;
+    sa:uses ex:ollama ;
+    sa:writesTo ex:milvus .
+
+ex:owlAdapter a sa:OutboundAdapter ;
+    rdfs:label "OWLAPI ontology adapter" ;
+    sa:uses ex:hermit .
+
+ex:graphProjection a sa:Process ;
+    rdfs:label "Knowledge graph projection" ;
+    sa:uses ex:shacl ;
+    sa:storesIn ex:fuseki .
+
+ex:hybridQuery a sa:Process ;
+    rdfs:label "Hybrid RAG query" ;
+    sa:readsFrom ex:milvus ;
+    sa:readsFrom ex:fuseki .
+
+ex:kafka a sa:MessageBroker ; rdfs:label "Kafka" .
+ex:ollama a sa:ModelRuntime ; rdfs:label "Ollama" .
+ex:milvus a sa:VectorIndex ; rdfs:label "Milvus" .
+ex:hermit a sa:Technology ; rdfs:label "HermiT" .
+ex:shacl a sa:Technology ; rdfs:label "SHACL" .
+ex:fuseki a sa:DataStore ; rdfs:label "Fuseki TDB2" .

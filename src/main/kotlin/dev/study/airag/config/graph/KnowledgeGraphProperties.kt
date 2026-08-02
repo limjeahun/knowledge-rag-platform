@@ -21,6 +21,11 @@ data class KnowledgeGraphProperties(
     val fusekiDatasetUrl: String = "http://localhost:3030/knowledge",
     val hybridRetrievalEnabled: Boolean = true,
     val maxGraphFacts: Int = 20,
+    val maxGraphSeedChunks: Int = 8,
+    val maxGraphHops: Int = 1,
+    val ontologyReindexEnabled: Boolean = false,
+    val ontologyReindexBatchSize: Int = 100,
+    val ontologyReindexCron: String = "0 0 * * * *",
     val maxInferredStatements: Int = 2_000,
     val extractionModel: String = "qwen3.6:27b",
     val chunksPerRequest: Int = 4,
@@ -36,6 +41,12 @@ data class KnowledgeGraphProperties(
         require(shapesLocation.isNotBlank()) { "SHACL shapes 위치는 비어 있을 수 없습니다." }
         require(fusekiDatasetUrl.isNotBlank()) { "Fuseki dataset URL은 비어 있을 수 없습니다." }
         require(maxGraphFacts in 1..100) { "GraphRAG 사실 수는 1 이상 100 이하이어야 합니다." }
+        require(maxGraphSeedChunks > 0) { "그래프 검색의 최대 시드 청크 수는 양수여야 합니다." }
+        require(maxGraphHops in 0..2) { "그래프 검색의 최대 탐색 깊이는 0 이상 2 이하여야 합니다." }
+        require(ontologyReindexBatchSize in 1..1_000) {
+            "온톨로지 재색인 배치 크기는 1 이상 1,000 이하여야 합니다."
+        }
+        require(ontologyReindexCron.isNotBlank()) { "온톨로지 재색인 cron은 비어 있을 수 없습니다." }
         require(maxInferredStatements > 0) { "추론 statement 제한은 0보다 커야 합니다." }
         require(extractionModel.isNotBlank()) { "그래프 추출 모델명은 비어 있을 수 없습니다." }
     }

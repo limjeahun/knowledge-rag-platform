@@ -108,10 +108,11 @@ class FusekiKnowledgeGraphQueryAdapter(
                 }
                 val adjacent =
                     findRelations(
-                        connection = connection,
-                        entityIds = frontier,
-                        textTokens = emptyList(),
-                        limit = query.limit - relations.size,
+                        connection,
+                        RelationSearchCriteria(
+                            entityIds = frontier,
+                            limit = query.limit - relations.size,
+                        ),
                     )
                 val next = linkedSetOf<String>()
                 adjacent.forEach { relation ->
@@ -137,22 +138,66 @@ class FusekiKnowledgeGraphQueryAdapter(
         }
 
     /**
-     * 질문 token이 source/target 이름 또는 관계 code와 일치하는 그래프 사실을 반환한다.
+     * 벡터 검색 청크의 직접 사실을 먼저 찾고 질문 어휘 및 제한된 이웃 탐색으로 보완한다.
      *
-     * 이 조회는 벡터 유사도가 아니라 가벼운 lexical GraphRAG 후보 검색이다. [searchableTokens]로
-     * 질문을 제한된 token 집합으로 만들고 asserted와 inferred active graph를 함께 조회한다.
+     * [FindRelevantKnowledgeGraphFactsQuery.seedChunkIds]는 Milvus 검색 결과에서 전달된 근거
+     * 청크이므로 같은 provenance를 가진 asserted 사실을 최우선으로 배치한다. 그 다음 질문
+     * token과 일치하는 사실을 합치고, 직접 후보의 양 끝점을 frontier로 사용해 요청된 깊이만큼
+     * 인접 관계를 확장한다. 각 단계는 논리 triple key로 중복 제거하므로 동일 사실의 asserted와
+     * inferred 표현 또는 순환 관계가 context를 불필요하게 채우지 않는다.
      *
-     * @param query 자연어 질문과 Application이 제한한 최대 사실 수
-     * @return assertion kind와 이용 가능한 직접 원문 근거가 포함된 관계 사실
+     * @param query 질문, Milvus 시드 청크, 탐색 깊이와 Application이 제한한 최대 사실 수
+     * @return 시드 직접 사실, lexical 사실, 인접 사실 순으로 정렬된 GraphRAG context
      */
     override fun findRelevantFacts(query: FindRelevantKnowledgeGraphFactsQuery): List<KnowledgeGraphFactView> =
         gateway.read { connection ->
-            findRelations(
-                connection = connection,
-                entityIds = emptySet(),
-                textTokens = searchableTokens(query.text),
-                limit = query.limit,
+            val facts = linkedMapOf<String, KnowledgeGraphFactView>()
+            if (query.seedChunkIds.isNotEmpty()) {
+                mergeFacts(
+                    facts,
+                    findRelations(
+                        connection,
+                        RelationSearchCriteria(
+                            seedChunkIds = query.seedChunkIds.toSet(),
+                            limit = query.limit,
+                        ),
+                    ),
+                )
+            }
+            mergeFacts(
+                facts,
+                findRelations(
+                    connection,
+                    RelationSearchCriteria(
+                        textTokens = searchableTokens(query.text),
+                        limit = query.limit,
+                    ),
+                ),
             )
+
+            var frontier =
+                facts.values
+                    .flatMap { listOf(it.sourceEntityId, it.targetEntityId) }
+                    .toSet()
+            val visited = frontier.toMutableSet()
+            repeat(query.maxHops) {
+                if (frontier.isEmpty() || facts.size >= query.limit) return@repeat
+                val adjacent =
+                    findRelations(
+                        connection,
+                        RelationSearchCriteria(
+                            entityIds = frontier,
+                            limit = query.limit - facts.size,
+                        ),
+                    )
+                mergeFacts(facts, adjacent)
+                frontier =
+                    adjacent
+                        .flatMap { listOf(it.sourceEntityId, it.targetEntityId) }
+                        .filter(visited::add)
+                        .toSet()
+            }
+            facts.values.take(query.limit)
         }
 
     /**
@@ -208,46 +253,50 @@ class FusekiKnowledgeGraphQueryAdapter(
     /**
      * active asserted/inferred graph에서 조건에 맞는 방향성 object-property 사실을 조회한다.
      *
-     * [entityIds]가 있으면 어느 한 끝점이 해당 ID인 인접 관계를, [textTokens]가 있으면
-     * 끝점 이름이나 relation code가 token을 포함하는 관계를 찾는다. 두 조건이 모두 비어
-     * 있으면 상한 내 전체 관계 후보를 조회한다. 같은 triple의 provenance 행은 statement
-     * key로 합치고 직접 근거만 중복 없이 수집한다.
+     * [RelationSearchCriteria.entityIds]가 있으면 어느 한 끝점이 해당 ID인 인접 관계를,
+     * [RelationSearchCriteria.textTokens]가 있으면 끝점 이름이나 relation code가 token을
+     * 포함하는 관계를 찾는다. [RelationSearchCriteria.seedChunkIds]가 있으면 provenance의
+     * chunk ID가 Milvus 검색 결과와 일치하는 직접 관계만 찾는다. 같은 triple의 provenance
+     * 행은 statement key로 합치고 직접 근거만 중복 없이 수집한다.
      *
      * inferred graph의 사실은 provenance에 document/quote가 없으므로 evidence가 빈 목록일 수
      * 있다. relation ID가 없는 추론 사실은 triple 문자열로 결정적 ID를 만들어 API 안정성을
      * 유지한다.
      *
      * @param connection 현재 READ transaction의 connection
-     * @param entityIds 이웃 조회에 사용할 entity ID 집합, 필터하지 않으면 빈 집합
-     * @param textTokens lexical 관련성 검색 token, 필터하지 않으면 빈 목록
-     * @param limit 반환할 중복 제거 관계의 최대 수
+     * @param criteria entity·질문 token·시드 청크 필터와 반환 상한을 묶은 조회 조건
      * @return asserted와 inferred를 구분한 기술 중립 그래프 사실
      */
     private fun findRelations(
         connection: org.apache.jena.rdfconnection.RDFConnection,
-        entityIds: Set<String>,
-        textTokens: List<String>,
-        limit: Int,
+        criteria: RelationSearchCriteria,
     ): List<KnowledgeGraphFactView> {
         val byStatement = linkedMapOf<String, MutableFact>()
         val entityFilter =
-            if (entityIds.isEmpty()) {
+            if (criteria.entityIds.isEmpty()) {
                 ""
             } else {
-                val values = entityIds.joinToString(" ") { sparqlString(it) }
+                val values = criteria.entityIds.joinToString(" ") { sparqlString(it) }
                 "VALUES ?requestedEntityId { $values } FILTER(?sourceEntityId = ?requestedEntityId || ?targetEntityId = ?requestedEntityId)"
             }
         val textFilter =
-            if (textTokens.isEmpty()) {
+            if (criteria.textTokens.isEmpty()) {
                 ""
             } else {
                 val conditions =
-                    textTokens.joinToString(" || ") { token ->
+                    criteria.textTokens.joinToString(" || ") { token ->
                         "CONTAINS(LCASE(STR(?sourceName)), LCASE(${sparqlString(token)})) || " +
                             "CONTAINS(LCASE(STR(?targetName)), LCASE(${sparqlString(token)})) || " +
                             "CONTAINS(LCASE(STR(?relationType)), LCASE(${sparqlString(token)}))"
                     }
                 "FILTER($conditions)"
+            }
+        val seedChunkFilter =
+            if (criteria.seedChunkIds.isEmpty()) {
+                ""
+            } else {
+                val values = criteria.seedChunkIds.joinToString(" ") { sparqlString(it) }
+                "VALUES ?requestedChunkId { $values } FILTER(BOUND(?chunkId) && ?chunkId = ?requestedChunkId)"
             }
         connection.querySelect(
             """
@@ -294,8 +343,9 @@ class FusekiKnowledgeGraphQueryAdapter(
               }
               $entityFilter
               $textFilter
+              $seedChunkFilter
             }
-            LIMIT ${limit * 20}
+            LIMIT ${criteria.limit * 20}
             """.trimIndent(),
         ) { row ->
             val statementKey =
@@ -326,8 +376,25 @@ class FusekiKnowledgeGraphQueryAdapter(
                 if (evidence !in fact.evidence) fact.evidence += evidence
             }
         }
-        return byStatement.values.take(limit).map(MutableFact::toView)
+        return byStatement.values.take(criteria.limit).map(MutableFact::toView)
     }
+
+    /**
+     * 우선순위가 높은 조회 결과를 유지하면서 새 사실만 context 후보에 추가한다.
+     *
+     * relation ID는 asserted와 inferred projection에서 달라질 수 있으므로 업무적으로 같은
+     * `source-type-target`을 key로 사용한다. 시드 조회가 먼저 호출되기 때문에 직접 원문
+     * evidence가 있는 asserted 사실이 뒤의 lexical·이웃 결과보다 우선한다.
+     */
+    private fun mergeFacts(
+        target: MutableMap<String, KnowledgeGraphFactView>,
+        candidates: List<KnowledgeGraphFactView>,
+    ) {
+        candidates.forEach { target.putIfAbsent(it.logicalKey(), it) }
+    }
+
+    /** asserted/inferred 저장 표현과 무관한 방향성 관계의 논리 중복 제거 key를 만든다. */
+    private fun KnowledgeGraphFactView.logicalKey(): String = "$sourceEntityId|$type|$targetEntityId"
 
     /**
      * 여러 개체의 rdf:type assertion provenance를 한 번의 SPARQL로 조회해 결합한다.
@@ -463,6 +530,26 @@ class FusekiKnowledgeGraphQueryAdapter(
 
     /** provenance relation ID가 없는 추론 triple에 재현 가능한 fallback UUID를 부여한다. */
     private fun stableUuid(value: String): UUID = UUID.nameUUIDFromBytes(value.toByteArray(StandardCharsets.UTF_8))
+
+    /**
+     * 하나의 SPARQL 관계 조회에 필요한 선택 필터와 결과 상한을 묶는다.
+     *
+     * Adapter 내부 parameter object이므로 Application query를 Jena 세부 조회마다 재사용하지
+     * 않는다. 비어 있는 필터는 적용하지 않으며 둘 이상을 지정하면 모두 만족해야 한다.
+     */
+    private data class RelationSearchCriteria(
+        val entityIds: Set<String> = emptySet(),
+        val textTokens: List<String> = emptyList(),
+        val seedChunkIds: Set<String> = emptySet(),
+        val limit: Int,
+    ) {
+        init {
+            require(entityIds.isNotEmpty() || textTokens.isNotEmpty() || seedChunkIds.isNotEmpty()) {
+                "관계 조회에는 entity, text token, seed chunk 중 하나 이상의 필터가 필요합니다."
+            }
+            require(limit > 0) { "관계 조회 개수는 양수여야 합니다." }
+        }
+    }
 
     private data class MutableEntity(
         val entityId: String,

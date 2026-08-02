@@ -113,6 +113,26 @@ class KnowledgeDocument private constructor(
     }
 
     /**
+     * 검색 가능하지만 이전 온톨로지로 투영된 문서를 현재 색인 파이프라인에 다시 접수한다.
+     *
+     * 원문이나 문서 버전은 바뀌지 않는다. 대신 현재 색인 완료 상태를 대기로 전환하고
+     * [DocumentIndexingRequested]를 기록하여 Milvus 색인과 지식 그래프를 동일한 문서
+     * 버전으로 다시 만든다. 진행 중·실패·삭제 상태를 덮어쓰지 않도록
+     * [DocumentIndexingStatus.INDEXED]에서만 호출할 수 있다.
+     *
+     * @param now 재색인을 요청한 업무 시각
+     * @throws InvalidDocumentStateTransitionException 현재 상태가 `INDEXED`가 아닌 경우
+     */
+    fun requestReindexing(now: Instant) {
+        ensureStatus(DocumentIndexingStatus.INDEXED, "온톨로지 변경 재색인")
+        status = DocumentIndexingStatus.PENDING
+        failureReason = null
+        indexedAt = null
+        updatedAt = now
+        record(DocumentIndexingRequested(now, id, version))
+    }
+
+    /**
      * 문서를 더 이상 검색하거나 색인할 수 없는 상태로 전환한다.
      *
      * 이미 삭제된 문서에 다시 호출해도 상태를 변경하지 않는 멱등 연산이다.

@@ -1,0 +1,4 @@
+질문 답변은 Milvus의 벡터 검색과 Fuseki의 지식 그래프 검색을 결합한다.
+Milvus에서 검색된 chunkId는 Fuseki provenance 조회의 시드가 된다. 그래프 조회는 해당 청크가 직접 근거인 asserted relation을 먼저 찾고 질문 어휘와 제한된 이웃의 inferred relation으로 보완한다.
+Ollama 답변 생성기는 검색된 문서 청크와 지식 그래프 사실을 한 번의 근거 context로 사용한다.
+REST와 MCP 응답은 답변뿐 아니라 documentId, chunkId, similarity score, relation type, assertion kind와 원문 evidence를 반환해 결과를 추적할 수 있게 한다.

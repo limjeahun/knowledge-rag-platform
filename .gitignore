@@ -43,3 +43,12 @@ out/
 .env
 .env.*
 !.env.example
+
+### GraphRAG comparison research ###
+research/graphrag/.venv/
+research/graphrag/.python-version
+research/graphrag/workspaces/
+research/graphrag/results/
+research/graphrag/reports/
+research/graphrag/**/__pycache__/
+research/graphrag/**/*.pyc

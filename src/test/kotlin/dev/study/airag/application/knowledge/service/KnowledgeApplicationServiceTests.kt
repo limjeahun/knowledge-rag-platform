@@ -9,6 +9,7 @@ import dev.study.airag.application.graph.port.out.KnowledgeGraphProjectionRegist
 import dev.study.airag.application.graph.port.out.KnowledgeOntologyPort
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphProjection
 import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphProjectionReceipt
+import dev.study.airag.application.graph.port.out.dto.KnowledgeGraphReprojectionCriteria
 import dev.study.airag.application.graph.port.out.dto.KnowledgeOntology
 import dev.study.airag.application.graph.port.out.dto.OntologyEntityType
 import dev.study.airag.application.graph.service.ProjectKnowledgeGraphService
@@ -619,6 +620,9 @@ class KnowledgeApplicationServiceTests {
             override fun activate(receipt: KnowledgeGraphProjectionReceipt) = Unit
 
             override fun retire(documentId: DocumentId) = Unit
+
+            override fun findReprojectionCandidates(criteria: KnowledgeGraphReprojectionCriteria) =
+                emptyList<DocumentId>()
         }
 
     private fun projectionReceipt(projection: KnowledgeGraphProjection) =

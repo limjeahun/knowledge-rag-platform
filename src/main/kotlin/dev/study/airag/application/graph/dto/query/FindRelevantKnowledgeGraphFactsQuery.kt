@@ -9,9 +9,14 @@ package dev.study.airag.application.graph.dto.query
 data class FindRelevantKnowledgeGraphFactsQuery(
     val text: String,
     val limit: Int = 20,
+    val seedChunkIds: List<String> = emptyList(),
+    val maxHops: Int = 1,
 ) {
     init {
         require(text.isNotBlank()) { "그래프 사실 검색어는 비어 있을 수 없습니다." }
         require(limit in 1..100) { "그래프 사실 검색 limit은 1 이상 100 이하여야 합니다." }
+        require(seedChunkIds.size <= 100) { "그래프 검색의 시드 청크는 100개를 초과할 수 없습니다." }
+        require(seedChunkIds.all(String::isNotBlank)) { "그래프 검색의 시드 청크 ID는 비어 있을 수 없습니다." }
+        require(maxHops in 0..2) { "그래프 탐색 깊이는 0 이상 2 이하여야 합니다." }
     }
 }
